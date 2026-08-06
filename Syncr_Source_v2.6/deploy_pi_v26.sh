@@ -5,22 +5,25 @@
 
 APP_NAME="KuroSyncr"
 INSTALL_DIR="/home/indraedge/SyncrEdge"
+# Auto-detect zip file if specific name is not present
 ZIP_FILE="publish-pi-v26.zip"
-EXECUTABLE="Syncr.UI"
+if [ ! -f "$ZIP_FILE" ]; then
+    ZIP_FILE=$(ls *.zip 2>/dev/null | head -n 1)
+fi
 
-echo "Starting Syncr v2.6.2 Deployment..."
+echo "Starting Syncr v2.6 Deployment..."
 
 # 1. Stop existing service
-echo "⏹Stopping existing service..."
+echo "⏹ Stopping existing service..."
 sudo systemctl stop syncr.service 2>/dev/null
 
 # 2. Extract Files
-if [ -f "$ZIP_FILE" ]; then
-    echo "Extracting new build..."
+if [ -n "$ZIP_FILE" ] && [ -f "$ZIP_FILE" ]; then
+    echo "Extracting new build ($ZIP_FILE)..."
     mkdir -p "$INSTALL_DIR"
     unzip -o "$ZIP_FILE" -d "$INSTALL_DIR"
 else
-    echo "Error: $ZIP_FILE not found!"
+    echo "Error: No ZIP file found in current directory!"
     exit 1
 fi
 
