@@ -5,11 +5,8 @@
 
 APP_NAME="KuroSyncr"
 INSTALL_DIR="/home/indraedge/SyncrEdge"
-# Auto-detect zip file if specific name is not present
-ZIP_FILE="publish-pi-v26.zip"
-if [ ! -f "$ZIP_FILE" ]; then
-    ZIP_FILE=$(ls *.zip 2>/dev/null | head -n 1)
-fi
+# Auto-detect any zip package in current directory
+ZIP_FILE=$(ls *.zip 2>/dev/null | head -n 1)
 
 echo "Starting Syncr v2.6 Deployment..."
 
