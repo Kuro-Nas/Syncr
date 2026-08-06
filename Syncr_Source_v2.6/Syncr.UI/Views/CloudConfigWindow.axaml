@@ -1,0 +1,67 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Syncr.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="360"
+        x:Class="Syncr.UI.Views.CloudConfigWindow"
+        x:DataType="vm:CloudConfigViewModel"
+        Title="Cloud Settings"
+        Width="460" Height="400"
+        WindowStartupLocation="CenterOwner"
+        Background="#1e1e2e"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Window.Styles>
+        <Style Selector="TextBox">
+            <Setter Property="Background"   Value="#2a2a3e"/>
+            <Setter Property="Foreground"   Value="White"/>
+            <Setter Property="BorderBrush"  Value="#444"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding"      Value="8,6"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto, *, Auto" Margin="24">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="CLOUD INTEGRATION" FontSize="20" FontWeight="Bold" Foreground="White"/>
+            <TextBlock Text="Supabase data push configuration" FontSize="12" Foreground="#666" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Spacing="14">
+            <CheckBox Content="Enable Cloud Push" IsChecked="{Binding IsEnabled}" Foreground="White" FontWeight="SemiBold"/>
+
+            <StackPanel IsVisible="{Binding IsEnabled}" Spacing="12">
+                <StackPanel>
+                    <TextBlock Text="SUPABASE URL" FontSize="11" Foreground="#666" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding SupabaseUrl}" Watermark="https://xyz.supabase.co"/>
+                </StackPanel>
+
+                <StackPanel>
+                    <TextBlock Text="ANON KEY" FontSize="11" Foreground="#666" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding SupabaseKey}" PasswordChar="•" Watermark="eyJhbGci…"/>
+                </StackPanel>
+
+                <!-- Test Connection Row -->
+                <Grid ColumnDefinitions="Auto, *">
+                    <Button Grid.Column="0" Content="Test Connection" Padding="14,8"
+                            Background="#2e7d52" Foreground="White" CornerRadius="6" FontWeight="Bold"
+                            Command="{Binding TestConnCommand}"
+                            IsEnabled="{Binding !IsTesting}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding TestStatus}"
+                               Foreground="#a3be8c" FontFamily="Consolas" FontSize="12"
+                               VerticalAlignment="Center" Margin="14,0,0,0"/>
+                </Grid>
+            </StackPanel>
+        </StackPanel>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*, Auto" Margin="0,16,0,0">
+            <Button Grid.Column="1" Content="Save &amp; Close" Padding="20,10"
+                    Background="#5e81f4" Foreground="White" CornerRadius="6" FontWeight="Bold"
+                    Command="{Binding SaveCommand}"/>
+        </Grid>
+    </Grid>
+</Window>

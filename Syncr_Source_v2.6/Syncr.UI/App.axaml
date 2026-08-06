@@ -1,0 +1,70 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Syncr.UI.App"
+             RequestedThemeVariant="Dark">
+
+    <!-- Performance: Force hardware acceleration -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <x:Double x:Key="DesiredFrameRate">60</x:Double>
+            <SolidColorBrush x:Key="AccentPrimary">#06B6D4</SolidColorBrush>    <!-- Cyan 500 -->
+            <SolidColorBrush x:Key="AccentSecondary">#38BDF8</SolidColorBrush>  <!-- Sky 400 -->
+            <SolidColorBrush x:Key="Success">#22C55E</SolidColorBrush>          <!-- Green 500 -->
+            <SolidColorBrush x:Key="Warning">#EAB308</SolidColorBrush>          <!-- Yellow 500 -->
+            <SolidColorBrush x:Key="Error">#EF4444</SolidColorBrush>            <!-- Red 500 -->
+
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- ── DARK THEME ──────────────────────────────────────────────────────── -->
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="BackgroundDark">#0F172A</SolidColorBrush>   <!-- Slate 900 -->
+                    <SolidColorBrush x:Key="SurfaceDark">#1E293B</SolidColorBrush>      <!-- Slate 800 -->
+                    <SolidColorBrush x:Key="SurfaceElevated">#283548</SolidColorBrush>  <!-- Slate 750 -->
+                    <SolidColorBrush x:Key="SurfaceLight">#334155</SolidColorBrush>     <!-- Slate 700 -->
+                    <SolidColorBrush x:Key="TextPrimary">#F1F5F9</SolidColorBrush>      <!-- Slate 100 -->
+                    <SolidColorBrush x:Key="TextSecondary">#94A3B8</SolidColorBrush>    <!-- Slate 400 -->
+                    <SolidColorBrush x:Key="AccentAction">#38BDF8</SolidColorBrush>     <!-- Sky Blue -->
+                    <SolidColorBrush x:Key="StatusOk">#22C55E</SolidColorBrush>         <!-- Emerald Green -->
+                </ResourceDictionary>
+
+                <!-- ── LIGHT THEME (Warm Cream & Espresso Palette) ──────────────────── -->
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="BackgroundDark">#F5F1E8</SolidColorBrush>   <!-- Warm Cream -->
+                    <SolidColorBrush x:Key="SurfaceDark">#FBF8F2</SolidColorBrush>      <!-- Warm Off-White -->
+                    <SolidColorBrush x:Key="SurfaceElevated">#FFFDF7</SolidColorBrush>  <!-- Warmest White -->
+                    <SolidColorBrush x:Key="SurfaceLight">#E5DCC8</SolidColorBrush>     <!-- Warm Tan/Beige -->
+                    <SolidColorBrush x:Key="TextPrimary">#3B2F2A</SolidColorBrush>      <!-- Espresso Brown -->
+                    <SolidColorBrush x:Key="TextSecondary">#8A7B68</SolidColorBrush>    <!-- Muted Taupe -->
+                    <SolidColorBrush x:Key="AccentAction">#C08552</SolidColorBrush>     <!-- Burnt Amber -->
+                    <SolidColorBrush x:Key="StatusOk">#6B7A5E</SolidColorBrush>         <!-- Muted Olive -->
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml"/>
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+
+        <!-- Card Style -->
+        <Style Selector="Border.Card">
+            <Setter Property="Background" Value="{DynamicResource SurfaceDark}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="BoxShadow" Value="0 1 3 0 #0F3B2F2A"/>
+        </Style>
+        <Style Selector="Border.Card:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}"/>
+            <Setter Property="BoxShadow" Value="0 4 8 -2 #1E3B2F2A"/>
+        </Style>
+
+        <!-- Status Badge Style -->
+        <Style Selector="Border.Badge">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+    </Application.Styles>
+</Application>

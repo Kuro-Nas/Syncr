@@ -1,0 +1,764 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:vm="using:Syncr.UI.ViewModels"
+        xmlns:conv="using:Syncr.UI.Converters"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="Syncr.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Syncr"
+        Icon="avares://Syncr.UI/Assets/App_Logo.ico"
+        Background="{DynamicResource BackgroundDark}"
+        WindowState="Maximized"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Window.Resources>
+        <conv:SKColorToBrushConverter x:Key="SKColorToBrushConverter"/>
+        <conv:IntToColorConverter x:Key="IntToColorConverter"/>
+        <conv:StringToColorConverter x:Key="StringToColorConverter"/>
+        <conv:HexToBrushConverter x:Key="HexToBrushConverter"/>
+        
+        <StreamGeometry x:Key="SparklineIcon">M3,13 L6,14 L9,10 L12,12 L15,6 L18,8 L21,3</StreamGeometry>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Button.HeaderAction">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.HeaderAction:hover">
+            <Setter Property="Background" Value="#1e2d3d"/>
+        </Style>
+        <Style Selector="Button.HeaderAction.Close:hover">
+            <Setter Property="Background" Value="#44e06c75"/>
+            <Setter Property="Foreground" Value="#e06c75"/>
+        </Style>
+        <Style Selector="Button.HeaderAction.Assign:hover">
+            <Setter Property="Background" Value="#4422d3ee"/>
+            <Setter Property="Foreground" Value="#22d3ee"/>
+        </Style>
+
+        <!-- Invisible TextBox for Title -->
+        <Style Selector="TextBox.Invisible">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBox.Invisible:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BoxShadow" Value="none"/>
+        </Style>
+        
+        <!-- Adaptive Scaling (v3.3) -->
+        <Style Selector="TextBlock.GraphValue">
+            <Setter Property="FontSize" Value="18"/>
+        </Style>
+        <Style Selector="TextBlock.GraphValue.Small">
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="TextBlock.GraphUnit">
+            <Setter Property="FontSize" Value="10"/>
+        </Style>
+        <Style Selector="TextBlock.GraphUnit.Small">
+            <Setter Property="FontSize" Value="9"/>
+        </Style>
+        <Style Selector="StackPanel.MetricsPanel">
+            <Setter Property="Spacing" Value="15"/>
+        </Style>
+        <Style Selector="StackPanel.MetricsPanel.Small">
+            <Setter Property="Spacing" Value="8"/>
+        </Style>
+        <Style Selector="TextBox.GraphTitle">
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="TextBox.GraphTitle.Small">
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Window.Styles>
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- Main Container -->
+    <Grid RowDefinitions="Auto, *">
+        
+        <!-- Top Bar (Glass Effect) -->
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}" 
+                BorderThickness="0,0,0,1" Padding="20,10">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <!-- Branding -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
+                    <Image Source="/Assets/logo.png" Height="38" VerticalAlignment="Center"/>
+                    <TextBlock Text="SYNCR" FontSize="26" FontWeight="ExtraBold" LetterSpacing="1" 
+                               Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Time and Cloud Status (moved to top-right) -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,35,10,0">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Ellipse Width="8" Height="8" Fill="{Binding CloudStatusColor, Converter={StaticResource SKColorToBrushConverter}}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding CloudStatus}" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <Border Background="{DynamicResource SurfaceLight}" Width="1" Height="20" VerticalAlignment="Center"/>
+                    
+                    <TextBlock Text="{Binding CurrentTime}" Foreground="{DynamicResource TextPrimary}" 
+                               FontFamily="Consolas" FontSize="14" VerticalAlignment="Center" FontWeight="SemiBold"/>
+
+                    <!-- Focus Mode Exit (v3.2) -->
+                    <Button IsVisible="{Binding IsFocusModeActive}" Command="{Binding ExitFocusModeCommand}" 
+                            Background="#1e2d3d" BorderBrush="#1e2d3d" BorderThickness="1" Foreground="#e06c75" 
+                            CornerRadius="4" Padding="12,6" Margin="10,0,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" Width="12" Height="12"/>
+                            <TextBlock Text="Close Focus" VerticalAlignment="Center" FontSize="12" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Content Area -->
+        <Grid Grid.Row="1" ColumnDefinitions="280, *" Background="Transparent">
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}" BorderThickness="0,0,1,0" Padding="15">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="MACHINES" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="12" LetterSpacing="1"/>
+                    
+                    <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Machines}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="Card" Padding="15,10" Margin="0,0,0,10" Cursor="Hand">
+                                        <Grid ColumnDefinitions="*, Auto">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="5" IsVisible="{Binding IsPlotVisible}" VerticalAlignment="Center">
+                                                    <Ellipse Width="6" Height="6" Fill="{Binding StatusColor, Converter={StaticResource SKColorToBrushConverter}}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Status}" FontSize="10" Foreground="{Binding StatusColor, Converter={StaticResource SKColorToBrushConverter}}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <TextBlock Text="Hidden" FontSize="10" Foreground="{DynamicResource TextSecondary}" IsVisible="{Binding !IsPlotVisible}"/>
+                                            </StackPanel>
+                                            
+                                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsPlotVisible}" OnContent="" OffContent="">
+                                                <ToggleSwitch.Styles>
+                                                    <Style Selector="ToggleSwitch:checked /template/ Border#SwitchKnobBounds">
+                                                        <Setter Property="Background" Value="{Binding ToggleSwitchColor, Converter={StaticResource SKColorToBrushConverter}}"/>
+                                                    </Style>
+                                                    <Style Selector="ToggleSwitch:checked /template/ Border#SwitchKnob">
+                                                        <Setter Property="Background" Value="{Binding ToggleSwitchColor, Converter={StaticResource SKColorToBrushConverter}}"/>
+                                                    </Style>
+                                                </ToggleSwitch.Styles>
+                                            </ToggleSwitch>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <!-- Network Diagnostics Panel (v3.1) -->
+                    <Border Classes="Card" Padding="15,15,15,10" Margin="0,20,0,0">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="NETWORK DIAGNOSTICS" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="10" LetterSpacing="1" Margin="0,0,0,5"/>
+                            
+                            <Grid ColumnDefinitions="*, Auto, Auto">
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <PathIcon Data="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" Width="12" Height="12" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Text="Cloud Sync" Foreground="{DynamicResource TextPrimary}" FontSize="12"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding CloudSyncStatus}" FontSize="12" FontWeight="SemiBold" 
+                                           Foreground="{Binding CloudSyncColor, Converter={StaticResource SKColorToBrushConverter}}" Margin="0,0,10,0"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*, Auto">
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <PathIcon Data="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z" Width="12" Height="12" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Text="Offline Queue" Foreground="{DynamicResource TextPrimary}" FontSize="12"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding QueueLength}" FontSize="12" Foreground="{DynamicResource TextSecondary}" FontFamily="Consolas"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*, Auto">
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <PathIcon Data="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" Width="12" Height="12" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Text="Last Sync" Foreground="{DynamicResource TextPrimary}" FontSize="12"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding LastSyncTime}" FontSize="11" Foreground="{DynamicResource TextSecondary}" FontFamily="Consolas" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- v3.2 Extended Telemetry -->
+                            <Grid ColumnDefinitions="*, Auto" Margin="0,2,0,0">
+                                <TextBlock Text="Session Uploads" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                                <TextBlock Grid.Column="1" Text="{Binding TotalSyncs}" FontSize="11" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBlock Text="Session Retries" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SessionRetries}" FontSize="11" Foreground="{Binding SessionRetries, Converter={StaticResource IntToColorConverter}}" FontWeight="SemiBold"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBlock Text="Throughput" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                                <TextBlock Grid.Column="1" Text="{Binding DataRate}" FontSize="11" Foreground="{DynamicResource Success}" FontWeight="Bold"/>
+                            </Grid>
+
+                            <!-- Terminal Toggle / Expander -->
+                            <Button Command="{Binding ToggleTerminalCommand}" Background="Transparent" Padding="0" Margin="0,8,0,0" HorizontalAlignment="Stretch">
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBlock Text="{Binding TerminalToggleText}" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontStyle="Italic"/>
+                                    <PathIcon Grid.Column="1" Data="{Binding TerminalToggleIcon}" Width="14" Height="14" Foreground="{DynamicResource TextSecondary}"/>
+                                </Grid>
+                            </Button>
+
+                            <!-- Enlarge Button (v3.5) -->
+                            <Button Command="{Binding ToggleEnlargeTerminalCommand}" Background="Transparent" Padding="0" Margin="0,5,0,0" 
+                                    HorizontalAlignment="Right" IsVisible="{Binding IsTerminalVisible}" ToolTip.Tip="Toggle Enlarge Logs">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="Popout" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontStyle="Italic"/>
+                                    <PathIcon Data="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" Width="12" Height="12" Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Hidden Raw Terminal -->
+                            <TextBox Text="{Binding FullStatusLog}" 
+                                     IsReadOnly="True" 
+                                     IsVisible="{Binding IsTerminalVisible}"
+                                     Background="#0c0c0c" 
+                                     BorderThickness="1" 
+                                     BorderBrush="#333"
+                                     Foreground="#6b9c1d" 
+                                     FontFamily="Consolas" 
+                                     FontSize="10" 
+                                     Height="120"
+                                     Margin="0,5,0,0"
+                                     AcceptsReturn="True" 
+                                     TextWrapping="NoWrap"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Dashboard -->
+            <Grid Grid.Column="1" RowDefinitions="Auto, *" Margin="25">
+                <!-- KPI Section -->
+                <Grid Grid.Row="0" Margin="0,0,0,25">
+                     <!-- Context Header -->
+                    <Grid ColumnDefinitions="*, Auto">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="5">
+                            <TextBlock Text="Overview" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="Real-time performance monitoring and system diagnostics" FontSize="14" Foreground="{DynamicResource TextSecondary}"/>
+                        </StackPanel>
+                        
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding Machines}" SelectedItem="{Binding SelectedMachine}" Width="200" VerticalAlignment="Center">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+                </Grid>
+
+                <Grid Grid.Row="1" ColumnDefinitions="*, 250">
+                    <!-- Chart Area -->
+                    <Border Grid.Column="0" Classes="Card" Margin="0,0,25,0" Padding="0">
+                        <Grid RowDefinitions="Auto, *">
+                            <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="15,10,15,5">
+                                <TextBlock Text="GRAPHS" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center"/>
+                                <Button Grid.Column="1" Content="＋ New Graph" Background="{DynamicResource SurfaceLight}" Foreground="{DynamicResource TextPrimary}" 
+                                        CornerRadius="4" Padding="10,4" FontSize="12" Command="{Binding AddGraphCommand}" 
+                                        IsVisible="{Binding CanAddGraph}" Cursor="Hand"/>
+                            </Grid>
+                            
+                            <ScrollViewer x:Name="GraphScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding GraphPanels}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                             <Border Background="#0f1623" BorderBrush="#1e2d3d" BorderThickness="1" 
+                                                     CornerRadius="8" Padding="0" Margin="4"
+                                                     BoxShadow="0 4 12 0 #66000000"
+                                                     MinWidth="350" Width="{Binding GridWidth}">
+                                                 <Grid RowDefinitions="44, *">
+                                                     <!-- Premium Header -->
+                                                     <Border Grid.Row="0" Background="Transparent" BorderBrush="#1e2d3d" BorderThickness="0,0,0,1">
+                                                         <Grid ColumnDefinitions="Auto, *, Auto">
+                                                             <!-- 1. Graph Badge (Left) -->
+                                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Stretch">
+                                                                 <Border MinWidth="26" Height="26" Background="#1e2d3d" CornerRadius="4" Margin="12,0,8,0" Padding="6,2" VerticalAlignment="Center">
+                                                                     <TextBlock Text="{Binding BadgeText}" Foreground="#22d3ee" FontWeight="Bold" FontSize="10" 
+                                                                                VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                                 </Border>
+                                                                 <Border Width="1" Background="#1e2d3d" Margin="0,10" VerticalAlignment="Stretch"/>
+                                                             </StackPanel>
+
+                                                             <!-- 2. Label + Value (Middle) -->
+                                                             <Grid Grid.Column="1" ColumnDefinitions="Auto, Auto, *">
+                                                                  <!-- Scrollable Title Container (Prevents collision with numbers) -->
+                                                                  <ScrollViewer Grid.Column="0" MaxWidth="180" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
+                                                                      <TextBox Classes="Invisible GraphTitle" Classes.Small="{Binding !IsExpanded}" 
+                                                                               Text="{Binding Title}" Foreground="#f8f9fa" 
+                                                                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,4,0"/>
+                                                                  </ScrollViewer>
+
+                                                                  <Border Grid.Column="1" Width="1" Height="14" Background="#338e9baa" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding IsExpanded}"/>
+                                                                 
+                                                                  <!-- Header Live Metrics -->
+                                                                  <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,10,0">
+                                                                      <ItemsControl ItemsSource="{Binding HeaderMetrics}">
+                                                                         <ItemsControl.ItemsPanel>
+                                                                             <ItemsPanelTemplate>
+                                                                                 <StackPanel Orientation="Horizontal" Spacing="10"/>
+                                                                             </ItemsPanelTemplate>
+                                                                         </ItemsControl.ItemsPanel>
+                                                                         <ItemsControl.ItemTemplate>
+                                                                             <DataTemplate>
+                                                                                  <StackPanel x:CompileBindings="False" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Classes.Small="{ReflectionBinding !$parent[ItemsControl].DataContext.IsExpanded}">
+                                                                                     <TextBlock Text="{Binding Value}" Foreground="{Binding TagColor, Converter={StaticResource HexToBrushConverter}}" 
+                                                                                                FontFamily="Consolas" Classes="GraphValue" Classes.Small="{ReflectionBinding !$parent[ItemsControl].DataContext.IsExpanded}"
+                                                                                                FontWeight="Bold" VerticalAlignment="Center"/>
+                                                                                     <TextBlock Text="{Binding SiUnit}" Foreground="#6b7280" Classes="GraphUnit" 
+                                                                                                Classes.Small="{ReflectionBinding !$parent[ItemsControl].DataContext.IsExpanded}"
+                                                                                                VerticalAlignment="Center" Margin="0,1,0,0"/>
+                                                                                  </StackPanel>
+                                                                             </DataTemplate>
+                                                                         </ItemsControl.ItemTemplate>
+                                                                     </ItemsControl>
+                                                                  </ScrollViewer>
+                                                             </Grid>
+
+                                                             <!-- 3. Actions (Right) -->
+                                                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                                 <!-- Source Chip (Moved here to prevent overlap) -->
+                                                                 <Border BorderBrush="{Binding HeaderColor, Converter={StaticResource HexToBrushConverter}}" BorderThickness="1" CornerRadius="4" Padding="6,2" Height="28" VerticalAlignment="Center"
+                                                                         IsVisible="{Binding DeviceName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                                     <TextBlock Text="{Binding DeviceName}" Foreground="#8e9baa" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                                 </Border>
+                                                                 
+                                                                 <Button Classes="HeaderAction" Content="Assign" Command="{Binding AssignTagsCommand}" CommandParameter="{Binding $parent[Window]}" ToolTip.Tip="Assign Tags" 
+                                                                         FontSize="11" FontWeight="ExtraBold" Foreground="#8e9baa" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                                 <Button Classes="HeaderAction" Command="{Binding $parent[Window].DataContext.ToggleGraphFocusCommand}" CommandParameter="{Binding}" ToolTip.Tip="Focus in Freescale Mode">
+                                                                     <PathIcon Data="{Binding FocusIcon}" 
+                                                                               Width="14" Height="14" Foreground="{Binding IsFocused, Converter={StaticResource StringToColorConverter}, ConverterParameter='True'}"/>
+                                                                 </Button>
+                                                                 <Button Classes="HeaderAction" Content="LIVE" 
+                                                                         Command="{Binding $parent[Window].DataContext.ResetGraphZoomCommand}" 
+                                                                         CommandParameter="{Binding}"
+                                                                         Foreground="{DynamicResource Success}"
+                                                                         FontSize="10" FontWeight="Bold"
+                                                                         ToolTip.Tip="Reset to Live View"/>
+                                                                 <Button Classes="HeaderAction" Content="{Binding ExpandIcon}" Command="{Binding ToggleExpandCommand}" CommandParameter="{Binding}"/>
+                                                                 <Button Classes="HeaderAction Close" Command="{Binding DeleteGraphCommand}" CommandParameter="{Binding}" ToolTip.Tip="Remove Graph">
+                                                                     <PathIcon Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" Width="12" Height="12" Foreground="#e06c75"/>
+                                                                 </Button>
+                                                             </StackPanel>
+                                                         </Grid>
+                                                     </Border>
+                                                    
+                                                     <!-- The Chart -->
+                                                     <Grid Grid.Row="1" Height="{Binding ChartHeight}">
+                                                         <TextBlock Text="No tags assigned" Foreground="{DynamicResource TextSecondary}" 
+                                                                    VerticalAlignment="Center" HorizontalAlignment="Center" 
+                                                                    IsVisible="{Binding !AssignedTags.Count}"/>
+                                                         <lvc:CartesianChart Series="{Binding Series}" XAxes="{Binding XAxes}" YAxes="{Binding YAxes}" TooltipPosition="Top" ZoomMode="X" AnimationsSpeed="00:00:00.300" EasingFunction="{x:Null}" UpdaterThrottler="00:00:00.050" PointerPressed="OnChartPointerPressed" PointerWheelChanged="OnChartPointerWheelChanged" PointerMoved="OnChartPointerMoved"/>
+                                                     </Grid>
+                                                 </Grid>
+                                             </Border>
+                                         </DataTemplate>
+                                     </ItemsControl.ItemTemplate>
+                                 </ItemsControl>
+                             </ScrollViewer>
+
+                             <!-- Full Terminal Portal (Enlarged Mode v3.5) -->
+                             <Border Grid.RowSpan="2" Background="#111" CornerRadius="8" 
+                                     IsVisible="{Binding IsTerminalEnlarged}" ZIndex="100" Margin="-1">
+                                 <Grid RowDefinitions="Auto, *">
+                                     <!-- Portal Header -->
+                                     <Border Grid.Row="0" Background="#1a1a1a" Padding="15,10" CornerRadius="8,8,0,0">
+                                         <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                                             <PathIcon Data="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z" Width="16" Height="16" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                             <TextBlock Grid.Column="1" Text="SYSTEM DIAGNOSTICS LOGS" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" LetterSpacing="1" FontSize="12"/>
+                                             
+                                             <!-- Controls -->
+                                             <Button Grid.Column="2" Command="{Binding ToggleEnlargeTerminalCommand}" Background="Transparent" Padding="5" Margin="0,0,5,0">
+                                                 <PathIcon Data="M19 13H5v-2h14v2z" Width="14" Height="14" Foreground="{DynamicResource TextSecondary}"/>
+                                             </Button>
+                                             <Button Grid.Column="3" Command="{Binding ToggleTerminalCommand}" Background="Transparent" Padding="5">
+                                                 <PathIcon Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" Width="14" Height="14" Foreground="#e06c75"/>
+                                             </Button>
+                                         </Grid>
+                                     </Border>
+                                     
+                                     <!-- Full Log View -->
+                                     <TextBox Grid.Row="1" Text="{Binding FullStatusLog}" 
+                                              IsReadOnly="True" 
+                                              Background="Transparent" 
+                                              BorderThickness="0"
+                                              Foreground="#6b9c1d" 
+                                              FontFamily="Consolas" 
+                                              FontSize="12" 
+                                              Padding="15"
+                                              AcceptsReturn="True" 
+                                              TextWrapping="NoWrap"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                              ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                                 </Grid>
+                             </Border>
+
+                             <!-- Full Metrics Portal (Enlarged Mode v3.5) -->
+                             <Border Grid.RowSpan="2" Background="#111" CornerRadius="8" 
+                                     IsVisible="{Binding IsMetricsEnlarged}" ZIndex="100" Margin="-1">
+                                 <Grid RowDefinitions="Auto, *">
+                                     <!-- Portal Header -->
+                                     <Border Grid.Row="0" Background="#1a1a1a" Padding="15,10" CornerRadius="8,8,0,0">
+                                         <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                                             <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" Width="16" Height="16" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                             <TextBlock Grid.Column="1" Text="LIVE METRICS" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" LetterSpacing="1" FontSize="12"/>
+                                             
+                                             <!-- Controls -->
+                                             <Button Grid.Column="2" Command="{Binding ToggleEnlargeMetricsCommand}" Background="Transparent" Padding="5" Margin="0,0,5,0">
+                                                 <PathIcon Data="M19 13H5v-2h14v2z" Width="14" Height="14" Foreground="{DynamicResource TextSecondary}"/>
+                                             </Button>
+                                             <Button Grid.Column="3" Command="{Binding ToggleEnlargeMetricsCommand}" Background="Transparent" Padding="5">
+                                                 <PathIcon Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" Width="14" Height="14" Foreground="#e06c75"/>
+                                             </Button>
+                                         </Grid>
+                                     </Border>
+                                     
+                                     <!-- Full Metrics View -->
+                                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="15">
+                                         <ItemsControl ItemsSource="{Binding AllTags}">
+                                             <ItemsControl.ItemsPanel>
+                                                 <ItemsPanelTemplate>
+                                                     <VirtualizingStackPanel/>
+                                                 </ItemsPanelTemplate>
+                                             </ItemsControl.ItemsPanel>
+                                             <ItemsControl.ItemTemplate>
+                                                 <DataTemplate>
+                                                     <Grid ColumnDefinitions="4, *" Margin="0,0,0,10">
+                                                         <Border Grid.Column="0" Background="{Binding TagColor, Converter={StaticResource HexToBrushConverter}}"
+                                                                 CornerRadius="3,0,0,3" Width="4"/>
+                                                         <Border Grid.Column="1" Classes="Card" Padding="15,12"
+                                                                 CornerRadius="0,8,8,0">
+                                                             <StackPanel Spacing="4">
+                                                                 <TextBlock Text="{Binding MachineName}"
+                                                                            Foreground="{DynamicResource TextSecondary}"
+                                                                            FontSize="11" Opacity="0.7"
+                                                                            IsVisible="{Binding MachineName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                                 <TextBlock Text="{Binding Name}"
+                                                                            Foreground="{DynamicResource TextPrimary}"
+                                                                            FontSize="14" FontWeight="SemiBold"/>
+                                                                 <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                     <TextBlock Text="{Binding Value}"
+                                                                                Foreground="{Binding TagColor, Converter={StaticResource HexToBrushConverter}}"
+                                                                                FontSize="24" FontWeight="Bold"/>
+                                                                     <TextBlock Text="{Binding SiUnit}"
+                                                                                Foreground="{DynamicResource TextSecondary}"
+                                                                                FontSize="16" VerticalAlignment="Bottom" Margin="0,0,0,2"/>
+                                                                 </StackPanel>
+                                                             </StackPanel>
+                                                         </Border>
+                                                     </Grid>
+                                                 </DataTemplate>
+                                             </ItemsControl.ItemTemplate>
+                                         </ItemsControl>
+                                     </ScrollViewer>
+                                 </Grid>
+                             </Border>
+                         </Grid>
+                     </Border>
+
+                     <!-- Right Sidebar: 3-tier layout -->
+                         <Grid Grid.Column="1" RowDefinitions="*, Auto, Auto" Margin="5,0,0,0">
+                          <!-- Scrollable Live Metrics (Top) -->
+                          <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                              <StackPanel Spacing="10" Margin="0,0,10,0">
+                                  <!-- Live Metrics Header -->
+                                  <Grid ColumnDefinitions="*, Auto">
+                                      <TextBlock Text="LIVE METRICS" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="11" LetterSpacing="1" VerticalAlignment="Center"/>
+                                      <!-- Metrics Popout Button (Fix #6) -->
+                                      <Button Grid.Column="1" Command="{Binding ToggleEnlargeMetricsCommand}" Background="Transparent" Padding="0"
+                                              ToolTip.Tip="Popout Live Metrics">
+                                          <StackPanel Orientation="Horizontal" Spacing="4">
+                                              <TextBlock Text="Popout" Foreground="#666" FontSize="10" FontStyle="Italic"/>
+                                              <PathIcon Data="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" Width="12" Height="12" Foreground="#666"/>
+                                          </StackPanel>
+                                      </Button>
+                                  </Grid>
+                                  
+                                  <!-- Selected Machine Tag List -->
+                                  <ItemsControl ItemsSource="{Binding SelectedMachineTags}">
+                                      <ItemsControl.ItemsPanel>
+                                          <ItemsPanelTemplate>
+                                              <VirtualizingStackPanel/>
+                                          </ItemsPanelTemplate>
+                                      </ItemsControl.ItemsPanel>
+                                      <ItemsControl.ItemTemplate>
+                                          <DataTemplate>
+                                              <!-- Colored left-border card matching tag color -->
+                                              <Grid ColumnDefinitions="4, *" Margin="0,0,0,6">
+                                                  <Border Grid.Column="0" Background="{Binding TagColor, Converter={StaticResource HexToBrushConverter}}"
+                                                          CornerRadius="3,0,0,3" Width="4"/>
+                                                  <Border Grid.Column="1" Classes="Card" Padding="12,10"
+                                                          CornerRadius="0,6,6,0">
+                                                      <StackPanel Spacing="2">
+                                                          <!-- Machine name label -->
+                                                          <TextBlock Text="{Binding MachineName}"
+                                                                     Foreground="{DynamicResource TextSecondary}"
+                                                                     FontSize="10" Opacity="0.7"
+                                                                     IsVisible="{Binding MachineName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                          <!-- Tag name -->
+                                                          <TextBlock Text="{Binding Name}"
+                                                                     Foreground="{DynamicResource TextSecondary}"
+                                                                     FontSize="12"/>
+                                                           <!-- Value + Unit -->
+                                                           <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <TextBlock Text="{Binding Value}"
+                                                                           Foreground="{Binding TagColor, Converter={StaticResource HexToBrushConverter}}"
+                                                                           FontSize="20" FontWeight="Bold"/>
+                                                                <TextBlock Text="{Binding SiUnit}"
+                                                                           Foreground="{DynamicResource TextSecondary}"
+                                                                           FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,1"/>
+                                                           </StackPanel>
+                                                      </StackPanel>
+                                                  </Border>
+                                              </Grid>
+                                          </DataTemplate>
+                                      </ItemsControl.ItemTemplate>
+                                  </ItemsControl>
+                              </StackPanel>
+                          </ScrollViewer>
+                          
+                          <Border Grid.Row="1" Classes="Card" Background="{DynamicResource SurfaceDark}" Margin="0,15,10,0">
+                              <StackPanel Spacing="10">
+                                  <TextBlock Text="SYSTEM STATUS" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                  <Grid ColumnDefinitions="*, Auto">
+                                      <TextBlock Grid.Column="0" Text="Connection" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                          <Ellipse Width="8" Height="8" Fill="{Binding HardwareHealthColor, Converter={StaticResource SKColorToBrushConverter}}" VerticalAlignment="Center"/>
+                                          <TextBlock Text="{Binding ConnectionState}" FontSize="12" FontWeight="Bold" 
+                                                     Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                      </StackPanel>
+                                  </Grid>
+                                  <Grid ColumnDefinitions="*, Auto">
+                                      <TextBlock Grid.Column="0" Text="Latency" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                      <TextBlock Grid.Column="1" Text="{Binding Latency}" Foreground="{DynamicResource TextPrimary}" FontFamily="Consolas" VerticalAlignment="Center"/>
+                                  </Grid>
+                              </StackPanel>
+                          </Border>
+                          
+                          <!-- 1. Collapsed Action Button -->
+                          <Button Grid.Row="2" Command="{Binding ToggleActionsCommand}" IsVisible="{Binding !IsActionsExpanded}"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="0,15,10,0"
+                                  Background="{DynamicResource SurfaceDark}" CornerRadius="8" Padding="15,10" Cursor="Hand">
+                              <Grid ColumnDefinitions="*, Auto" HorizontalAlignment="Stretch">
+                                  <TextBlock Grid.Column="0" Text="ACTIONS" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                  <PathIcon Grid.Column="1" Data="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" Width="10" Height="10" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                              </Grid>
+                          </Button>
+
+                          <!-- 2. Expanded Action Panel -->
+                          <Border Grid.Row="2" Classes="Card" Background="{DynamicResource SurfaceDark}" 
+                                  CornerRadius="8" Padding="15" Margin="0,15,10,0" IsVisible="{Binding IsActionsExpanded}">
+                              <StackPanel Spacing="10">
+                                  <!-- Header with Minimize Button -->
+                                  <Grid ColumnDefinitions="*, Auto">
+                                      <TextBlock Grid.Column="0" Text="ACTIONS" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                      <Button Grid.Column="1" Command="{Binding ToggleActionsCommand}" Background="Transparent" Padding="4" CornerRadius="4" Cursor="Hand">
+                                          <PathIcon Data="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" Width="10" Height="10" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                      </Button>
+                                  </Grid>
+                                  
+                                  <Button Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                      <StackPanel Orientation="Horizontal" Spacing="10">
+                                          <PathIcon Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" Width="18" Height="18"/>
+                                          <TextBlock Text="Data Folder" VerticalAlignment="Center"/>
+                                      </StackPanel>
+                                  </Button>
+
+                                  <Button Command="{Binding EnterFocusModeCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                      <StackPanel Orientation="Horizontal" Spacing="10">
+                                          <PathIcon Data="M4,4H10V6H6V10H4V4M20,4V10H18V6H14V4H20M20,20H14V18H18V14H20V20M4,20V14H6V18H10V20H4Z" Width="18" Height="18"/>
+                                          <TextBlock Text="Freescale Focus" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                      </StackPanel>
+                                  </Button>
+                                  
+                                  <Button Command="{Binding OpenSimulationCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                      <StackPanel Orientation="Horizontal" Spacing="10">
+                                          <PathIcon Data="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zM18 6H6v12h12V6zm-5.07 11.17l-2.83-2.83-1.41 1.41L12.93 20l5.66-5.66-1.41-1.41-4.25 4.24z" Width="18" Height="18"/>
+                                          <TextBlock Text="Simulation" VerticalAlignment="Center"/>
+                                      </StackPanel>
+                                  </Button>
+                                  
+                                   <Button Command="{Binding OpenCloudConfigCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                      <StackPanel Orientation="Horizontal" Spacing="10">
+                                          <PathIcon Data="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" Width="18" Height="18"/>
+                                          <TextBlock Text="Cloud Settings" VerticalAlignment="Center"/>
+                                      </StackPanel>
+                                  </Button>
+
+                                  <Button Command="{Binding OpenConfigCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                      <StackPanel Orientation="Horizontal" Spacing="10">
+                                          <PathIcon Data="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94s-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.3c-0.59,0.24-1.13,0.56-1.62,0.94L5.24,5.28c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.82c-0.12,0.21-0.07,0.47,0.11,0.61l2.03,1.58C4.84,11.3,4.81,11.63,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.49c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.49c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.21,0.07-0.47-0.11-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" Width="18" Height="18"/>
+                                          <TextBlock Text="Settings" VerticalAlignment="Center"/>
+                                      </StackPanel>
+                                  </Button>
+                              </StackPanel>
+                          </Border>
+                      </Grid>
+                  </Grid>
+              </Grid>
+          </Grid>
+
+        <!-- Focus Mode Overlay (Freescale Presentation) -->
+        <Grid Grid.Row="1" Grid.ColumnSpan="2" Background="#ee000000" IsVisible="{Binding IsFocusModeActive}" ZIndex="1000">
+            <Grid Margin="5,0,5,10" RowDefinitions="*, Auto">
+                <!-- Centered Graph Area -->
+                <Border Grid.Row="0" CornerRadius="12" Background="#0f1623" BorderBrush="#1e2d3d" BorderThickness="1" Padding="20,10">
+                    <Grid>
+                        <TextBlock Text="No graphs selected for Focus Mode" Foreground="#8e9baa" FontSize="18" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !FocusGraphs.Count}"/>
+                              <!-- Freescale Graphs Nested ItemsControl (v3.5 Centered Rows) -->
+                              <ItemsControl ItemsSource="{Binding FocusRows}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                  <ItemsControl.ItemsPanel>
+                                      <ItemsPanelTemplate>
+                                           <UniformGrid Columns="1" VerticalAlignment="Stretch"/>
+                                      </ItemsPanelTemplate>
+                                  </ItemsControl.ItemsPanel>
+                                  <ItemsControl.ItemTemplate>
+                                      <DataTemplate>
+                                          <!-- Each Row -->
+                                          <ItemsControl ItemsSource="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Stretch">
+                                              <ItemsControl.ItemsPanel>
+                                                  <ItemsPanelTemplate>
+                                                      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Stretch" Spacing="0"/>
+                                                  </ItemsPanelTemplate>
+                                              </ItemsControl.ItemsPanel>
+                                              <ItemsControl.ItemTemplate>
+                                                  <DataTemplate>
+                                                      <Border Classes="FocusGraphCard" 
+                                                              Width="{Binding FocusWidth}"
+                                                              VerticalAlignment="Stretch"
+                                                               Margin="2" Background="#0c121d" BorderBrush="#1e2d3d" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
+                                                          <Grid RowDefinitions="Auto, *">
+                                                              <Border Grid.Row="0" Background="#1e2d3d" CornerRadius="8,8,0,0" Padding="15,8">
+                                                              <Grid ColumnDefinitions="*, Auto, Auto">
+                                                                  <StackPanel Grid.Column="0" Spacing="2">
+                                                                      <StackPanel Orientation="Horizontal" Spacing="10">
+                                                                         <TextBlock Text="{Binding SerialNumber, StringFormat='G{0}'}" Foreground="#22d3ee" FontWeight="Bold"/>
+                                                                         <TextBlock Text="{Binding Title}" Foreground="#f8f9fa"/>
+                                                                      </StackPanel>
+                                                                      <!-- Live Metric Entry (v3.3) -->
+                                                                      <ItemsControl ItemsSource="{Binding HeaderMetrics}">
+                                                                          <ItemsControl.ItemsPanel>
+                                                                              <ItemsPanelTemplate>
+                                                                                  <StackPanel Orientation="Horizontal" Spacing="12"/>
+                                                                              </ItemsPanelTemplate>
+                                                                          </ItemsControl.ItemsPanel>
+                                                                          <ItemsControl.ItemTemplate>
+                                                                              <DataTemplate>
+                                                                                  <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                                      <TextBlock Text="{Binding Name}" Foreground="#8e9baa" FontSize="10" VerticalAlignment="Center"/>
+                                                                                      <TextBlock Text="{Binding Value}" Foreground="{Binding TagColor, Converter={StaticResource HexToBrushConverter}}" FontWeight="Bold" FontSize="12"/>
+                                                                                      <TextBlock Text="{Binding SiUnit}" Foreground="#6b7280" FontSize="9" VerticalAlignment="Bottom"/>
+                                                                                  </StackPanel>
+                                                                              </DataTemplate>
+                                                                          </ItemsControl.ItemTemplate>
+                                                                      </ItemsControl>
+                                                                  </StackPanel>
+                                                                  
+                                                                  <TextBlock Grid.Column="1" Text="{Binding DeviceName, StringFormat='({0})'}" Foreground="#8e9baa" FontSize="11" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                                                  
+                                                                  <Button Grid.Column="2" Content="✕" Background="Transparent" Foreground="#e06c75" 
+                                                                          Padding="5,0" Command="{Binding $parent[Window].DataContext.ToggleGraphFocusCommand}" CommandParameter="{Binding}"/>
+                                                              </Grid>
+                                                          </Border>
+                                                          <lvc:CartesianChart Grid.Row="1" Series="{Binding Series}" XAxes="{Binding XAxes}" 
+                                                                               LegendPosition="Right" ZoomMode="X" Margin="10,5"/>
+                                                      </Grid>
+                                                  </Border>
+                                              </DataTemplate>
+                                          </ItemsControl.ItemTemplate>
+                                          </ItemsControl>
+                                      </DataTemplate>
+                                  </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                    </Grid>
+                </Border>
+
+                <!-- Overlay Controls -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0" Spacing="15">
+                    <Button Content="＋ Select Graphs" Background="#22d3ee" Foreground="#0f1623" FontWeight="Bold" 
+                            CornerRadius="20" Padding="25,12" Cursor="Hand">
+                        <Button.Flyout>
+                            <Flyout>
+                                <Border Width="280" Height="350" Background="#1e2d3d" CornerRadius="8" Padding="15">
+                                    <Grid RowDefinitions="Auto, *">
+                                        <TextBlock Grid.Row="0" Text="Select Graphs" FontWeight="Bold" Foreground="White" Margin="0,0,0,15"/>
+                                        <ScrollViewer Grid.Row="1">
+                                            <ItemsControl ItemsSource="{Binding GraphPanels}">
+                                                 <ItemsControl.ItemTemplate>
+                                                     <DataTemplate>
+                                                         <Grid ColumnDefinitions="*, Auto, Auto">
+                                                             <CheckBox Grid.Column="0" IsChecked="{Binding IsFocused}" 
+                                                                       Command="{Binding $parent[Window].DataContext.ToggleGraphFocusCommand}" 
+                                                                       CommandParameter="{Binding}"
+                                                                       Content="{Binding FocusDisplayName}" Foreground="White" Margin="0,5"/>
+                                                             <Button Grid.Column="1" Content="↑" Command="{Binding $parent[Window].DataContext.MoveFocusGraphUpCommand}" CommandParameter="{Binding}" 
+                                                                     Padding="8,4" Margin="5,0" Background="#2e3b4d" CornerRadius="4" FontSize="10"/>
+                                                             <Button Grid.Column="2" Content="↓" Command="{Binding $parent[Window].DataContext.MoveFocusGraphDownCommand}" CommandParameter="{Binding}" 
+                                                                     Padding="8,4" Background="#2e3b4d" CornerRadius="4" FontSize="10"/>
+                                                         </Grid>
+                                                     </DataTemplate>
+                                                 </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button Content="Back to Dashboard" Background="#1e2d3d" BorderBrush="#1e2d3d" BorderThickness="1" 
+                            Foreground="White" FontWeight="Bold" CornerRadius="20" Padding="25,12" Command="{Binding ExitFocusModeCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+
+    <Window.Styles>
+        <Style Selector="Button.IconBtn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6"/>
+        </Style>
+        <Style Selector="Button.IconBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceLight}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+    </Window.Styles>
+</Window>

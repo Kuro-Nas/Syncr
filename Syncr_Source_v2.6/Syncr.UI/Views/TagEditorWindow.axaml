@@ -1,0 +1,274 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Syncr.UI.ViewModels"
+        xmlns:models="using:Syncr.Core.Models"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+        x:Class="Syncr.UI.Views.TagEditorWindow"
+        x:DataType="vm:TagEditorViewModel"
+        Title="Tag Configuration"
+        Width="1280" Height="740"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundDark}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.Header">
+            <Setter Property="FontSize"      Value="12"/>
+            <Setter Property="FontWeight"    Value="Bold"/>
+            <Setter Property="Foreground"    Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="LetterSpacing" Value="1"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background"   Value="{DynamicResource SurfaceDark}"/>
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush"  Value="{DynamicResource SurfaceLight}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding"      Value="6,4"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="Background"   Value="{DynamicResource SurfaceDark}"/>
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush"  Value="{DynamicResource SurfaceLight}"/>
+        </Style>
+        <Style Selector="DataGrid">
+            <Setter Property="Background"               Value="{DynamicResource BackgroundDark}"/>
+            <Setter Property="RowBackground"            Value="Transparent"/>
+            <Setter Property="BorderBrush"              Value="{DynamicResource SurfaceLight}"/>
+            <Setter Property="Foreground"               Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="GridLinesVisibility"      Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource SurfaceLight}"/>
+        </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background"               Value="{DynamicResource SurfaceDark}"/>
+            <Setter Property="Foreground"               Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontWeight"               Value="Bold"/>
+            <Setter Property="FontSize"                 Value="11"/>
+            <Setter Property="Padding"                  Value="8,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="SeparatorBrush"            Value="Transparent"/>
+        </Style>
+        <Style Selector="DataGridColumnHeader TextBlock">
+            <Setter Property="TextTrimming" Value="None"/>
+            <Setter Property="TextWrapping" Value="NoWrap"/>
+            <Setter Property="ClipToBounds" Value="False"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto, *, Auto, Auto" Margin="24">
+
+        <!-- ── HEADER & TOOL RIBBON ─────────────────────────────────────────── -->
+        <StackPanel Grid.Row="0" Spacing="14" Margin="0,0,0,16">
+            
+            <!-- Title Row -->
+            <StackPanel Spacing="2">
+                <TextBlock Text="TAG CONFIGURATION" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                <TextBlock Text="Configure registers, function codes, data types, scaling, units and colours for each tag" 
+                           FontSize="13" Foreground="{DynamicResource TextSecondary}"/>
+            </StackPanel>
+
+            <!-- Tool Ribbon Bar (Clean 2-bar row) -->
+            <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
+
+                <!-- Left Tool: Copy Tags From Machine Bar -->
+                <Border Grid.Column="0" Background="#1e2d1e" BorderBrush="#2e4d2e" BorderThickness="1"
+                        CornerRadius="8" Padding="12,8" VerticalAlignment="Center"
+                        IsVisible="{Binding HasCopySourceMachines}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Copy Tags From:" Foreground="#7ec98a" FontSize="12" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        <ComboBox ItemsSource="{Binding CopySourceMachines}"
+                                  SelectedItem="{Binding SelectedCopySource}"
+                                  Width="180">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Content="Copy All Tags"
+                                Command="{Binding CopyTagsFromMachineCommand}"
+                                Background="#2ecc71" Foreground="#0a1a0a"
+                                FontWeight="Bold" CornerRadius="4" Padding="12,6"
+                                ToolTip.Tip="Replace all tags in this machine with a copy from the selected machine"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Right Tool: Master Library Quick Import Bar -->
+                <Border Grid.Column="2" Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}" BorderThickness="1"
+                        CornerRadius="8" Padding="12,8" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Import Register Template:" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        <ComboBox ItemsSource="{Binding MasterTemplates}" SelectedItem="{Binding SelectedMasterTemplate}" Width="240">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Content="＋ Import" Command="{Binding ImportSelectedTemplateCommand}"
+                                Background="#5e81f4" Foreground="White" FontWeight="Bold" CornerRadius="4" Padding="12,6"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+
+        <!-- Tag DataGrid -->
+        <DataGrid Grid.Row="1" Margin="0,0,0,16"
+                  ItemsSource="{Binding Tags}"
+                  SelectedItem="{Binding SelectedTagItem}"
+                  AutoGenerateColumns="False"
+                  CanUserResizeColumns="True"
+                  SelectionMode="Single"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="ADDRESS" Binding="{Binding Address}" Width="Auto" MinWidth="90"/>
+                <DataGridTextColumn Header="TAG NAME" Binding="{Binding Name}"   Width="150" MinWidth="130"/>
+
+                <DataGridTemplateColumn Header="FUNC CODE" Width="320" MinWidth="280">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{x:Static vm:TagItem.AllFunctionCodeOptions}"
+                                      SelectedValue="{Binding FunctionCode}"
+                                      SelectedValueBinding="{Binding Code}"
+                                      DisplayMemberBinding="{Binding DisplayName}"
+                                      HorizontalAlignment="Stretch" Margin="2"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="DATA TYPE" Width="140" MinWidth="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{x:Static vm:TagItem.AllDataTypes}"
+                                      SelectedItem="{Binding DataType}"
+                                      HorizontalAlignment="Stretch" Margin="2"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="SCALING ×" Binding="{Binding ScalingFactor}" Width="Auto" MinWidth="90"/>
+                <DataGridTextColumn Header="SI UNIT"   Binding="{Binding SiUnit}"        Width="Auto" MinWidth="80"/>
+
+                <!-- Color swatch + picker button -->
+                <DataGridTemplateColumn Header="COLOR" Width="Auto" MinWidth="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Background="{Binding Color}"
+                                    Width="80" Height="28" CornerRadius="4"
+                                    Command="{Binding $parent[Window].DataContext.PickColorForExistingCommand}"
+                                    CommandParameter="{Binding $parent[Window]}"
+                                    ToolTip.Tip="{Binding Color}"
+                                    Margin="4,2"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Custom Circle PLOT toggle (Clean ControlTemplate without background box) -->
+                <DataGridTemplateColumn Header="PLOT" Width="Auto" MinWidth="80">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ToggleButton IsChecked="{Binding IsPlotted}"
+                                          Background="Transparent" BorderThickness="0"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Cursor="Hand" ToolTip.Tip="Toggle Plotting on Graph">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent" Padding="4">
+                                            <Panel Width="18" Height="18">
+                                                <!-- Unchecked Circle (Empty Ring) -->
+                                                <Ellipse Width="16" Height="16"
+                                                         Stroke="#8888aa" StrokeThickness="2"
+                                                         Fill="Transparent"
+                                                         IsVisible="{Binding !IsChecked, RelativeSource={RelativeSource TemplatedParent}}"/>
+
+                                                <!-- Checked Circle (Filled Blue Dot) -->
+                                                <Grid IsVisible="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}}">
+                                                    <Ellipse Width="16" Height="16" Fill="#5e81f4"/>
+                                                    <Ellipse Width="6" Height="6" Fill="White"/>
+                                                </Grid>
+                                            </Panel>
+                                        </Border>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Delete -->
+                <DataGridTemplateColumn Header="DELETE" Width="Auto" MinWidth="80">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="✕" Background="Transparent" Foreground="#e06c75"
+                                    FontWeight="Bold" HorizontalAlignment="Center"
+                                    Command="{Binding $parent[Window].DataContext.RemoveTagCommand}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip.Tip="Delete Tag"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Add / Edit Row -->
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBlock Grid.Column="0" Text="{Binding AddOrUpdateBtnText, StringFormat='{}EDIT / ADD TAG ({0})'}" Classes="Header"/>
+                    <Button Grid.Column="1" Content="Clear / New" Padding="8,2" FontSize="11"
+                            Background="Transparent" Foreground="{DynamicResource TextSecondary}"
+                            Command="{Binding ClearSelectionCommand}"
+                            IsVisible="{Binding IsEditingSelectedTag}"
+                            ToolTip.Tip="Deselect tag to add a new one"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="85, 1.5*, 310, 140, 85, 80, 80, Auto" RowDefinitions="Auto,Auto">
+                    <!-- Labels -->
+                    <TextBlock Grid.Column="0" Text="Address"     Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                    <TextBlock Grid.Column="1" Text="Name"        Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                    <TextBlock Grid.Column="2" Text="Func Code"   Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                    <TextBlock Grid.Column="3" Text="Data Type"   Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                    <TextBlock Grid.Column="4" Text="Scale ×"     Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                    <TextBlock Grid.Column="5" Text="SI Unit"     Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                    <TextBlock Grid.Column="6" Text="Color"       Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+
+                    <!-- Inputs -->
+                    <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding NewAddress}"       Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NewName}"          Margin="0,4,6,0"/>
+                    <ComboBox Grid.Row="1" Grid.Column="2" ItemsSource="{x:Static vm:TagItem.AllFunctionCodeOptions}"
+                              SelectedValue="{Binding NewFunctionCode}" SelectedValueBinding="{Binding Code}" DisplayMemberBinding="{Binding DisplayName}" HorizontalAlignment="Stretch" Margin="0,4,6,0"/>
+                    <ComboBox Grid.Row="1" Grid.Column="3" ItemsSource="{x:Static vm:TagItem.AllDataTypes}"
+                              SelectedItem="{Binding NewDataType}" HorizontalAlignment="Stretch" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding NewScalingFactor}" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="5" Text="{Binding NewSiUnit}"        Margin="0,4,6,0"/>
+
+                    <!-- Color pick button -->
+                    <Button Grid.Row="1" Grid.Column="6" Background="{Binding NewColor}"
+                            Height="32" CornerRadius="4" Margin="0,4,6,0"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding PickColorForNewCommand}"
+                            CommandParameter="{Binding $parent[Window]}"
+                            ToolTip.Tip="{Binding NewColor}"/>
+
+                    <Button Grid.Row="1" Grid.Column="7" Content="{Binding AddOrUpdateBtnText}" Padding="14,8"
+                            Background="{Binding AddOrUpdateBtnBackground}" Foreground="White" CornerRadius="6" FontWeight="Bold"
+                            Command="{Binding AddTagCommand}" Margin="0,4,0,0"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Footer -->
+        <Grid Grid.Row="3" ColumnDefinitions="*, Auto">
+            <TextBlock Grid.Column="0" Text="Scaling: multiply raw register value before display. SI Unit: shown in tooltips."
+                       Foreground="{DynamicResource TextSecondary}" FontSize="11" VerticalAlignment="Center"/>
+            <Button Grid.Column="1" Content="Save &amp; Close" Padding="20,10"
+                    Background="#5e81f4" Foreground="White" CornerRadius="6" FontWeight="Bold"
+                    Command="{Binding SaveTagsCommand}" CommandParameter="{Binding $parent[Window]}"/>
+        </Grid>
+    </Grid>
+</Window>

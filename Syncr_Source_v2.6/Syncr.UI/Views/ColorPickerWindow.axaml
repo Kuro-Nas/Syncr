@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Syncr.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="600"
+        x:Class="Syncr.UI.Views.ColorPickerWindow"
+        x:DataType="vm:ColorPickerViewModel"
+        Title="Color Picker"
+        Width="640" Height="620"
+        WindowStartupLocation="CenterOwner"
+        Background="#1e1e2e"
+        CanResize="False">
+
+    <Window.Styles>
+        <Style Selector="Button.Primary">
+            <Setter Property="Background"   Value="#5e81f4"/>
+            <Setter Property="Foreground"   Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding"      Value="20,10"/>
+            <Setter Property="FontWeight"   Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.Secondary">
+            <Setter Property="Background"   Value="#2a2a3e"/>
+            <Setter Property="Foreground"   Value="#aaa"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding"      Value="20,10"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto, *, Auto" Margin="20">
+
+        <!-- Title Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
+            <PathIcon Data="M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A1.5,1.5 0 0,0 13.5,19.5C13.5,19.11 13.35,18.76 13.11,18.5C12.88,18.23 12.73,17.88 12.73,17.5A1.5,1.5 0 0,1 14.23,16H16A5,5 0 0,0 21,11C21,6.58 16.97,3 12,3Z" Width="24" Height="24" Foreground="#5e81f4" VerticalAlignment="Center"/>
+            <StackPanel>
+                <TextBlock Text="Color Picker" FontSize="20" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Text="Official Avalonia Spectrum · HSV Wheel · RGB · Hex Palette" FontSize="11" Foreground="#888"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Official Avalonia ColorView -->
+        <Border Grid.Row="1" Background="#252535" CornerRadius="12" Padding="16">
+            <ColorView Color="{Binding AvaloniaColor, Mode=TwoWay}"
+                       IsAlphaEnabled="False"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Action Buttons -->
+        <Grid Grid.Row="2" ColumnDefinitions="*, *" Margin="0,16,0,0" HorizontalAlignment="Stretch">
+            <Button Grid.Column="0" Content="Cancel" Classes="Secondary"
+                    HorizontalAlignment="Stretch" Margin="0,0,8,0"
+                    Command="{Binding CancelCommand}" CommandParameter="{Binding $parent[Window]}"/>
+            <Button Grid.Column="1" Content="✔ Apply Color" Classes="Primary"
+                    HorizontalAlignment="Stretch" Margin="8,0,0,0"
+                    Command="{Binding ApplyCommand}" CommandParameter="{Binding $parent[Window]}"/>
+        </Grid>
+
+    </Grid>
+</Window>

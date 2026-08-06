@@ -1,0 +1,147 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Syncr.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="580" d:DesignHeight="620"
+        x:Class="Syncr.UI.Views.SimulationWindow"
+        x:DataType="vm:SimulationViewModel"
+        Title="Simulation Override"
+        Width="620" Height="650"
+        CanResize="False"
+        MinWidth="480" MinHeight="480"
+        ShowInTaskbar="False"
+        Background="#1e1e2e"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome">
+
+    <!-- Root Grid: Fixed Header + Scrollable Body -->
+    <Grid RowDefinitions="Auto, *, Auto">
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- LAYER 1: Sticky Header                         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <Border Grid.Row="0" Background="#252537" BorderBrush="#3a3a5c" BorderThickness="0,0,0,1"
+                Padding="18,14" ZIndex="10" PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="*, Auto">
+                <!-- Left: Title + Machine Selector + Status -->
+                <StackPanel Grid.Column="0" Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock Text="Simulation Override" FontSize="15" FontWeight="Bold"
+                                   Foreground="White" VerticalAlignment="Center"/>
+                        <!-- Status Badge -->
+                        <Border CornerRadius="10" Padding="8,3"
+                                Background="{Binding StatusColor}">
+                            <TextBlock Text="{Binding StatusText}" FontSize="10" FontWeight="Bold"
+                                       Foreground="White" VerticalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+                    <!-- Machine Selector Row -->
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock Text="Machine:" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding MachineNames}" SelectedItem="{Binding SelectedMachine}"
+                                  Width="160" FontSize="12" Background="#1e1e2e"/>
+                        <!-- Built-in Slave toggle -->
+                        <CheckBox Content="Built-in Slave" IsChecked="{Binding UseBuiltInSlave}"
+                                  Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Right: Start / Stop buttons + Custom Close -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="▶ Start" Command="{Binding StartSimulationCommand}"
+                            Background="#2ecc71" Foreground="White"
+                            CornerRadius="5" Padding="14,8" FontSize="12" FontWeight="Bold" Cursor="Hand"/>
+                    <Button Content="■ Stop"  Command="{Binding StopSimulationCommand}"
+                            Background="#e74c3c" Foreground="White"
+                            CornerRadius="5" Padding="14,8" FontSize="12" FontWeight="Bold" Cursor="Hand"/>
+                    <!-- Custom Close Button -->
+                    <Button Content="✕" Click="OnCloseClicked"
+                            Background="Transparent" Foreground="#888"
+                            CornerRadius="5" Padding="10,8" FontSize="16" FontWeight="Bold" Cursor="Hand" Margin="10,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- LAYER 2: Live Streaming Data Section           -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <Grid Grid.Row="1" RowDefinitions="Auto, *" Margin="0">
+            <!-- Section header + pause toggle -->
+            <Grid Grid.Row="0" ColumnDefinitions="*, Auto"
+                  Margin="18,10,18,6">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="LIVE STREAM" FontSize="11" FontWeight="Bold"
+                               Foreground="#666" LetterSpacing="1" VerticalAlignment="Center"/>
+                    <!-- live indicator dot -->
+                    <Ellipse Width="6" Height="6" Fill="#2ecc71" VerticalAlignment="Center"
+                             IsVisible="{Binding IsSimulating}"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="{Binding PauseButtonLabel}"
+                        Command="{Binding TogglePauseScrollCommand}"
+                        Background="#2a2a3e" Foreground="#aaa"
+                        FontSize="11" CornerRadius="4" Padding="10,4"
+                        Cursor="Hand"/>
+            </Grid>
+
+            <!-- Scrollable DataGrid for stream entries -->
+            <Border Grid.Row="1" Margin="12,0,12,8" CornerRadius="6"
+                    BorderBrush="#333" BorderThickness="1" Background="#1a1a2e">
+                <ScrollViewer x:Name="StreamScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <DataGrid x:Name="StreamDataGrid"
+                              ItemsSource="{Binding StreamLog}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              Background="Transparent"
+                              Foreground="#ccc"
+                              BorderThickness="0"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              CanUserReorderColumns="False"
+                              CanUserResizeColumns="True"
+                              RowBackground="Transparent">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Timestamp"     Binding="{Binding Timestamp}"    Width="130" FontFamily="Consolas" FontSize="11"/>
+                            <DataGridTextColumn Header="Tag Name"      Binding="{Binding TagName}"      Width="*"/>
+                            <DataGridTextColumn Header="Current Value" Binding="{Binding DisplayValue}" Width="140"/>
+                            <DataGridTextColumn Header="Override"      Binding="{Binding OverrideValue}" Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- LAYER 3: Manual Override Controls (Fixed)      -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <Border Grid.Row="2" Background="#252537" BorderBrush="#3a3a5c" BorderThickness="0,1,0,0"
+                Padding="14,10">
+            <Grid RowDefinitions="Auto, *">
+                <TextBlock Grid.Row="0" Text="MANUAL OVERRIDE" FontSize="10" FontWeight="Bold"
+                           Foreground="#666" LetterSpacing="1" Margin="0,0,0,6"/>
+
+                <!-- Tags table: Tag Name | Current Value | Override Value (editable) -->
+                <Border Grid.Row="1" CornerRadius="6" BorderBrush="#333" BorderThickness="1"
+                        Background="#1e1e2e" MaxHeight="160">
+                    <DataGrid ItemsSource="{Binding SimulatedTags}"
+                              AutoGenerateColumns="False"
+                              Background="Transparent"
+                              Foreground="#ccc"
+                              BorderThickness="0"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              RowBackground="Transparent">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Tag Name"      Binding="{Binding Name}"                   IsReadOnly="True"  Width="*"   FontSize="12"/>
+                            <DataGridTextColumn Header="Current Value" Binding="{Binding DisplayValue}"           IsReadOnly="True"  Width="140" FontSize="12"/>
+                            <DataGridTextColumn Header="Override Value" Binding="{Binding Value, Mode=TwoWay}"   IsReadOnly="False" Width="140" FontSize="12"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

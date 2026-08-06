@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Obfuscator>
+  <Var name="InPath" value=".\Publish\Pi" />
+  <Var name="OutPath" value=".\Obfuscated_Pi" />
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="false" />
+  <Var name="RenameProperties" value="false" />
+  <Var name="RenameEvents" value="false" />
+  <Var name="RenameFields" value="false" />
+  <Var name="UseUnicodeNames" value="false" />
+  <Var name="HideStrings" value="true" />
+  <Var name="Optimize" value="true" />
+  <Var name="SuppressStatistics" value="true" />
+
+  <!-- String Hiding for Pi Build (Safe Mode for Stability) -->
+  <Module file="$(InPath)\Syncr.UI.dll" />
+  <Module file="$(InPath)\Syncr.Core.dll" />
+</Obfuscator>

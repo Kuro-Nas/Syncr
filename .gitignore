@@ -1,0 +1,25 @@
+# .gitignore for SYNCR project
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+publish-*.zip
+Syncr_*.zip
+Publish/
+Obfuscated_*/
+.DS_Store
+*.log
+
+# Exclude raw extraction helpers & pdf specs
+*.pdf
+extract_growatt.py
+growatt_extracted.txt
+input_regs.txt
+Syncr_v3.0.0_Source_Windows/
+publish-pi-v26/

@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Syncr.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+        x:Class="Syncr.UI.Views.GraphTagPickerWindow"
+        x:DataType="vm:GraphTagPickerViewModel"
+        Title="Select Tags for Graph"
+        Width="450" Height="550"
+        WindowStartupLocation="CenterOwner"
+        Background="#1e1e2e"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Grid RowDefinitions="Auto, *, Auto" Margin="24">
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="GRAPH TAGS" FontSize="20" FontWeight="Bold" Foreground="White"/>
+            <TextBlock Text="Select which tags to plot on this graph panel" FontSize="12" Foreground="#888" Margin="0,4,0,0"/>
+            
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                <Button Content="Select All"   Classes="LinkBtn" Command="{Binding SelectAllCommand}"/>
+                <TextBlock Text="|" Foreground="#555" VerticalAlignment="Center"/>
+                <Button Content="Deselect All" Classes="LinkBtn" Command="{Binding DeselectAllCommand}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="#252535" CornerRadius="8" Margin="0,0,0,16">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Tags}" Margin="16">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected}" Margin="0,6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding MachineName}" Foreground="#aaa" FontSize="13" FontWeight="Bold"/>
+                                    <TextBlock Text="—" Foreground="#555"/>
+                                    <TextBlock Text="{Binding TagName}" Foreground="White" FontSize="13"/>
+                                </StackPanel>
+                            </CheckBox>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*, *" Margin="0,0,0,0" HorizontalAlignment="Stretch">
+            <Button Grid.Column="0" Content="Cancel" Padding="10,12" Background="#2a2a3e" Foreground="#aaa"
+                    CornerRadius="6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,8,0"
+                    Command="{Binding CancelCommand}" CommandParameter="{Binding $parent[Window]}"/>
+            <Button Grid.Column="1" Content="Apply" Padding="10,12" Background="#5e81f4" Foreground="White"
+                    FontWeight="Bold" CornerRadius="6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="8,0,0,0"
+                    Command="{Binding SaveCommand}" CommandParameter="{Binding $parent[Window]}"/>
+        </Grid>
+    </Grid>
+
+    <Window.Styles>
+        <Style Selector="Button.LinkBtn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#5e81f4"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.LinkBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#82a1fc"/>
+        </Style>
+    </Window.Styles>
+</Window>

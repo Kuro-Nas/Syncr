@@ -1,0 +1,247 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Syncr.UI.ViewModels"
+        xmlns:conv="using:Syncr.UI.Converters"
+        mc:Ignorable="d" d:DesignWidth="660" d:DesignHeight="680"
+        x:Class="Syncr.UI.Views.ConfigWindow"
+        x:DataType="vm:ConfigViewModel"
+        Title="Syncr Configuration"
+        Width="680" Height="680"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundDark}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Window.Resources>
+        <conv:ConnectionTypeToBooleanConverter x:Key="TypeToBool"/>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.Section">
+            <Setter Property="FontSize"      Value="11"/>
+            <Setter Property="FontWeight"    Value="Bold"/>
+            <Setter Property="Foreground"    Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="LetterSpacing" Value="1"/>
+            <Setter Property="Margin"        Value="0,12,0,6"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background"   Value="{DynamicResource SurfaceDark}"/>
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush"  Value="{DynamicResource SurfaceLight}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding"      Value="6,4"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="Background"   Value="{DynamicResource SurfaceDark}"/>
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush"  Value="{DynamicResource SurfaceLight}"/>
+        </Style>
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto, *, Auto" Margin="24">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="SETTINGS &amp; CONFIGURATION" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                <TextBlock Text="Manage machines, system theme, and software updates" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,4,0,0"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="＋ Add Machine" Padding="16,8"
+                    Background="#5e81f4" Foreground="White" CornerRadius="6"
+                    FontWeight="Bold" VerticalAlignment="Center"
+                    Command="{Binding AddMachineCommand}"/>
+        </Grid>
+
+        <!-- Main Scrollable Settings List -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="16">
+
+                <!-- ── APPEARANCE & THEME CARD ────────────────────────────────────────── -->
+                <Border Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}"
+                        BorderThickness="1" CornerRadius="10" Padding="16">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="APPEARANCE &amp; THEME" Classes="Section" Margin="0,0,0,2"/>
+                            <TextBlock Text="Switch between Dark Mode and Light Mode" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                        </StackPanel>
+
+                        <!-- Theme Toggle Button (Improvised High-Contrast Pill) -->
+                        <Button Grid.Column="1" Content="{Binding ThemeToggleText}"
+                                Command="{Binding ToggleThemeCommand}"
+                                Padding="20,8" Background="{DynamicResource AccentAction}" Foreground="White"
+                                BorderThickness="0" CornerRadius="20" FontWeight="Bold" FontSize="13"
+                                VerticalAlignment="Center" Cursor="Hand"
+                                ToolTip.Tip="Toggle between Dark and Light Mode"/>
+                    </Grid>
+                </Border>
+
+                <!-- ── SOFTWARE UPDATES CARD ───────────────────────────────────────────── -->
+                <Border Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}"
+                        BorderThickness="1" CornerRadius="10" Padding="16">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="SOFTWARE UPDATES" Classes="Section" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding AppVersionDisplay}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="1" Content="Check for Updates"
+                                    Command="{Binding CheckForUpdatesCommand}"
+                                    IsEnabled="{Binding !IsCheckingUpdates}"
+                                    Padding="14,6" Background="#1e2d3d" Foreground="#38bdf8"
+                                    BorderBrush="#38bdf8" BorderThickness="1"
+                                    CornerRadius="6" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <TextBlock Text="{Binding UpdateStatusText}" FontSize="12" Foreground="#38bdf8" TextWrapping="Wrap"/>
+
+                        <!-- Progress Bar (shown while downloading update) -->
+                        <StackPanel IsVisible="{Binding IsUpdating}" Spacing="6" Margin="0,4,0,0">
+                            <ProgressBar Value="{Binding UpdateProgress}" Minimum="0" Maximum="1"
+                                         Height="6" Foreground="#2ecc71" Background="#1a2a1a"
+                                         CornerRadius="3"/>
+                        </StackPanel>
+
+                        <!-- Install Button (shown when update is available) -->
+                        <Button IsVisible="{Binding UpdateAvailable}"
+                                Command="{Binding InstallUpdateCommand}"
+                                IsEnabled="{Binding !IsUpdating}"
+                                Content="🚀 Install Update &amp; Restart SYNCR"
+                                Padding="16,8" Background="#2ecc71" Foreground="#0a1a0a"
+                                FontWeight="Bold" FontSize="13" CornerRadius="6"
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ── MACHINE CONFIGURATIONS ─────────────────────────────────────────── -->
+                <TextBlock Text="MACHINE CONFIGURATIONS" Classes="Section" Margin="4,8,0,0"/>
+
+                <ItemsControl ItemsSource="{Binding Machines}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}"
+                                    BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,14">
+                                <StackPanel Spacing="10">
+
+                                    <!-- Machine header -->
+                                    <Grid ColumnDefinitions="*, Auto, Auto">
+                                        <TextBlock Text="MACHINE SETTINGS" Classes="Section" Grid.Column="0" Margin="0,0,0,0"/>
+                                        <Button Grid.Column="1" Content="Edit Tags" Background="Transparent" Foreground="#5e81f4"
+                                                FontWeight="Bold" Margin="0,0,10,0"
+                                                Command="{Binding $parent[Window].DataContext.EditTagsCommand}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Grid.Column="2" Content="✕" Background="Transparent" Foreground="#e06c75"
+                                                FontWeight="Bold"
+                                                Command="{Binding $parent[Window].DataContext.RemoveMachineCommand}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+
+                                    <!-- Name / Type -->
+                                    <Grid ColumnDefinitions="Auto, *, Auto, *">
+                                        <TextBlock Text="Name:" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                        <TextBox Text="{Binding Name}" Grid.Column="1" Margin="0,0,20,0"/>
+                                        <TextBlock Text="Type:" Grid.Column="2" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                        <ComboBox SelectedIndex="{Binding Type}" Grid.Column="3">
+                                            <ComboBoxItem>TCP</ComboBoxItem>
+                                            <ComboBoxItem>RTU</ComboBoxItem>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <!-- Mode / SlaveID -->
+                                    <Grid ColumnDefinitions="Auto, *, Auto, *">
+                                        <TextBlock Text="Mode:" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                        <ComboBox SelectedIndex="{Binding Mode}" Grid.Column="1" Margin="0,0,20,0">
+                                            <ComboBoxItem>Master</ComboBoxItem>
+                                            <ComboBoxItem>Slave</ComboBoxItem>
+                                        </ComboBox>
+                                        <TextBlock Text="Slave ID:" Grid.Column="2" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                        <TextBox Text="{Binding SlaveId}" Grid.Column="3"/>
+                                    </Grid>
+
+                                    <!-- Poll / Enabled -->
+                                    <Grid ColumnDefinitions="Auto, *, Auto, *">
+                                        <TextBlock Text="Poll (ms):" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                        <TextBox Text="{Binding PollingIntervalMs}" Grid.Column="1" Margin="0,0,20,0"
+                                                 ToolTip.Tip="1000 = 1 sec, 5000 = 5 sec"/>
+                                        <CheckBox IsChecked="{Binding IsEnabled}" Grid.Column="2" Content="Enabled"/>
+                                    </Grid>
+
+                                    <!-- TCP Settings -->
+                                    <StackPanel IsVisible="{Binding Type, Converter={StaticResource TypeToBool}, ConverterParameter=Tcp}">
+                                        <TextBlock Text="TCP SETTINGS" Classes="Section"/>
+                                        <Grid ColumnDefinitions="Auto, *, Auto, *">
+                                            <TextBlock Text="IP:" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                            <TextBox Text="{Binding IpAddress}" Grid.Column="1" Margin="0,0,20,0"/>
+                                            <TextBlock Text="Port:" Grid.Column="2" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                            <TextBox Text="{Binding Port}" Grid.Column="3"/>
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <!-- RTU Settings -->
+                                    <StackPanel IsVisible="{Binding Type, Converter={StaticResource TypeToBool}, ConverterParameter=Rtu}">
+                                        <TextBlock Text="RTU SETTINGS" Classes="Section"/>
+                                        <Grid ColumnDefinitions="Auto, *, Auto, *, Auto" Margin="0,0,0,10">
+                                            <TextBlock Text="COM Port:" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                            <TextBox Text="{Binding SerialPort}" Grid.Column="1" Margin="0,0,20,0"/>
+                                            <TextBlock Text="Baud:" Grid.Column="2" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                            <TextBox Text="{Binding BaudRate}" Grid.Column="3" Margin="0,0,10,0"/>
+                                            <!-- Auto detect button -->
+                                            <Button Grid.Column="4" Content="Auto" Padding="10,6"
+                                                    Background="#2e7d52" Foreground="White" CornerRadius="4"
+                                                    Command="{Binding $parent[Window].DataContext.AutoDetectBaudCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip.Tip="Auto-scan baud rate by testing common rates"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="Auto, *, Auto, *">
+                                            <TextBlock Text="Parity:" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                            <ComboBox SelectedIndex="{Binding Parity}" Grid.Column="1" Margin="0,0,20,0">
+                                                <ComboBoxItem>None</ComboBoxItem>
+                                                <ComboBoxItem>Odd</ComboBoxItem>
+                                                <ComboBoxItem>Even</ComboBoxItem>
+                                                <ComboBoxItem>Mark</ComboBoxItem>
+                                                <ComboBoxItem>Space</ComboBoxItem>
+                                            </ComboBox>
+                                            <TextBlock Text="Stop Bits:" Grid.Column="2" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                            <ComboBox SelectedIndex="{Binding StopBits}" Grid.Column="3">
+                                                <ComboBoxItem>None</ComboBoxItem>
+                                                <ComboBoxItem>One</ComboBoxItem>
+                                                <ComboBoxItem>Two</ComboBoxItem>
+                                                <ComboBoxItem>OnePointFive</ComboBoxItem>
+                                            </ComboBox>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="Auto, *" Margin="0,10,0,0">
+                                            <TextBlock Text="Data Bits:" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Margin="0,0,10,0"/>
+                                            <TextBox Text="{Binding DataBits}" Grid.Column="1"/>
+                                        </Grid>
+                                    </StackPanel>
+
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer: baud status + save -->
+        <Grid Grid.Row="2" ColumnDefinitions="*, Auto" Margin="0,16,0,0">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="{Binding BaudStatus}" Foreground="#5e81f4" FontFamily="Consolas" FontSize="13"
+                           IsVisible="{Binding BaudStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <!-- Loading indicator during baud scan -->
+                <TextBlock Text="⟳ Scanning baud rate…" Foreground="{DynamicResource TextSecondary}" FontSize="13"
+                           IsVisible="{Binding IsScanningBaud}"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="Save &amp; Close" Padding="20,10"
+                    Background="#5e81f4" Foreground="White" CornerRadius="6" FontWeight="Bold"
+                    Command="{Binding SaveCommand}"/>
+        </Grid>
+
+    </Grid>
+</Window>
