@@ -5,8 +5,11 @@
 
 APP_NAME="KuroSyncr"
 INSTALL_DIR="/home/indraedge/SyncrEdge"
-# Auto-detect any zip package in current directory
-ZIP_FILE=$(ls *.zip 2>/dev/null | head -n 1)
+# Default zip package for Pi ARM64
+ZIP_FILE="Syncr_Pi_arm64.zip"
+if [ ! -f "$ZIP_FILE" ]; then
+    ZIP_FILE=$(ls *.zip 2>/dev/null | head -n 1)
+fi
 
 echo "Starting Syncr v2.6 Deployment..."
 
