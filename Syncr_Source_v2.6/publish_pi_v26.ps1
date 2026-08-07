@@ -24,7 +24,7 @@ Get-ChildItem -Path "." -Include bin, obj -Recurse | ForEach-Object {
 
 # Run dotnet publish
 Write-Host "Publishing Syncr.UI v2.6.5 (Linux ARM64)..."
-dotnet publish $projectPath -c Release -r linux-arm64 --self-contained -p:PublishTrimmed=true -p:TrimMode=partial -p:DebugType=None -p:DebugSymbols=false -o $outputDir
+dotnet publish $projectPath -c Release -r linux-arm64 --self-contained -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false -o $outputDir
 
 # Remove PDB symbol files to drastically reduce package size
 Get-ChildItem -Path $outputDir -Filter "*.pdb" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
