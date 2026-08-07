@@ -16,13 +16,16 @@ if (Test-Path $zipName) {
 Write-Host "Performing Deep Clean (bin/obj)..."
 Get-ChildItem -Path "." -Include bin, obj -Recurse | Remove-Item -Recurse -Force
 
-# Publish as a Single-File Executable (Confirmed Stable Mode)
+# Publish as a Single-File Executable with trimming, compression and no debug symbols
 Write-Host "Publishing Syncr.UI (Windows)..."
-dotnet publish $projectPath -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o $publishDir
+dotnet publish $projectPath -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true -p:TrimMode=partial -p:DebugType=None -p:DebugSymbols=false -o $publishDir
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Publish failed!"
 }
+
+# Remove PDB symbol files to drastically reduce package size
+Get-ChildItem -Path $publishDir -Filter "*.pdb" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
 
 <# 🛡️ KURO Shield: Obfuscation temporarily disabled for stability verification
 Write-Host "🛡️ KURO Shield: Scrambling Code (Obfuscating)..." -ForegroundColor Cyan
