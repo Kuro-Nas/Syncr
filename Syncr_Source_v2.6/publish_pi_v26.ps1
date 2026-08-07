@@ -54,8 +54,11 @@ if ($LASTEXITCODE -eq 0) {
 
     Write-Host "Creating Zip Archive: $zipPath..." -ForegroundColor Cyan
     Compress-Archive -Path "$outputDir\*" -DestinationPath $zipPath -Force
+
+    $otaZipPath = Join-Path $PSScriptRoot "Syncr_Pi_arm64.zip"
+    Copy-Item -Path $zipPath -Destination $otaZipPath -Force
     
-    Write-Host "Zip ready at: $zipPath" -ForegroundColor Green
+    Write-Host "Zip ready at: $zipPath and $otaZipPath" -ForegroundColor Green
 }
 else {
     Write-Host "Build Failed." -ForegroundColor Red
