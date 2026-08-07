@@ -17,25 +17,34 @@
                 <!-- ── DARK THEME ──────────────────────────────────────────────────────── -->
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="BackgroundDark">#0F172A</SolidColorBrush>   <!-- Slate 900 -->
-                    <SolidColorBrush x:Key="SurfaceDark">#1E293B</SolidColorBrush>      <!-- Slate 800 -->
-                    <SolidColorBrush x:Key="SurfaceElevated">#283548</SolidColorBrush>  <!-- Slate 750 -->
-                    <SolidColorBrush x:Key="SurfaceLight">#334155</SolidColorBrush>     <!-- Slate 700 -->
+                    <SolidColorBrush x:Key="SidebarBackground">#141E2D</SolidColorBrush><!-- Slightly deeper slate panel -->
+                    <SolidColorBrush x:Key="SurfaceDark">#1E293B</SolidColorBrush>      <!-- Slate 800 (cards) -->
+                    <SolidColorBrush x:Key="SurfaceElevated">#283548</SolidColorBrush>  <!-- Slate 750 (active cards) -->
+                    <SolidColorBrush x:Key="SurfaceLight">#334155</SolidColorBrush>     <!-- Slate 700 (borders) -->
                     <SolidColorBrush x:Key="TextPrimary">#F1F5F9</SolidColorBrush>      <!-- Slate 100 -->
                     <SolidColorBrush x:Key="TextSecondary">#94A3B8</SolidColorBrush>    <!-- Slate 400 -->
                     <SolidColorBrush x:Key="AccentAction">#38BDF8</SolidColorBrush>     <!-- Sky Blue -->
                     <SolidColorBrush x:Key="StatusOk">#22C55E</SolidColorBrush>         <!-- Emerald Green -->
+                    <SolidColorBrush x:Key="ButtonBackground">#283548</SolidColorBrush> <!-- Action button bg -->
+                    <SolidColorBrush x:Key="ButtonBorder">#334155</SolidColorBrush>     <!-- Button border -->
+                    <SolidColorBrush x:Key="ButtonHover">#2E3F58</SolidColorBrush>      <!-- Button hover -->
                 </ResourceDictionary>
 
-                <!-- ── LIGHT THEME (Warm Cream & Espresso Palette) ──────────────────── -->
+                <!-- ── LIGHT THEME (Warm Sand & Cream v3 Palette) ─────────────── -->
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="BackgroundDark">#F5F1E8</SolidColorBrush>   <!-- Warm Cream -->
-                    <SolidColorBrush x:Key="SurfaceDark">#FBF8F2</SolidColorBrush>      <!-- Warm Off-White -->
-                    <SolidColorBrush x:Key="SurfaceElevated">#FFFDF7</SolidColorBrush>  <!-- Warmest White -->
-                    <SolidColorBrush x:Key="SurfaceLight">#E5DCC8</SolidColorBrush>     <!-- Warm Tan/Beige -->
-                    <SolidColorBrush x:Key="TextPrimary">#3B2F2A</SolidColorBrush>      <!-- Espresso Brown -->
-                    <SolidColorBrush x:Key="TextSecondary">#8A7B68</SolidColorBrush>    <!-- Muted Taupe -->
-                    <SolidColorBrush x:Key="AccentAction">#C08552</SolidColorBrush>     <!-- Burnt Amber -->
-                    <SolidColorBrush x:Key="StatusOk">#6B7A5E</SolidColorBrush>         <!-- Muted Olive -->
+                    <SolidColorBrush x:Key="BackgroundDark">#E2D5B8</SolidColorBrush>   <!-- Main window bg: #E2D5B8 as requested -->
+                    <SolidColorBrush x:Key="SidebarBackground">#E2D5B8</SolidColorBrush><!-- Sidebar: Matches main bg #E2D5B8 -->
+                    <SolidColorBrush x:Key="SurfaceDark">#F5ECE0</SolidColorBrush>      <!-- Cards: Warm cream parchment (floats over bg) -->
+                    <SolidColorBrush x:Key="SurfaceElevated">#FAF4EA</SolidColorBrush>  <!-- Active/elevated card: Brightest warm cream -->
+                    <SolidColorBrush x:Key="SurfaceLight">#C4AE80</SolidColorBrush>     <!-- Borders: Rich tan, crisp separation -->
+                    <SolidColorBrush x:Key="TextPrimary">#241D16</SolidColorBrush>      <!-- Deep warm espresso text -->
+                    <SolidColorBrush x:Key="TextSecondary">#6B5D45</SolidColorBrush>    <!-- Deep taupe secondary text -->
+                    <SolidColorBrush x:Key="AccentAction">#A66B38</SolidColorBrush>     <!-- Burnt amber accent -->
+                    <SolidColorBrush x:Key="StatusOk">#556347</SolidColorBrush>         <!-- Muted olive status ok -->
+                    <!-- Buttons: Medium warm tan -->
+                    <SolidColorBrush x:Key="ButtonBackground">#D8C6A2</SolidColorBrush> <!-- Medium warm tan -->
+                    <SolidColorBrush x:Key="ButtonBorder">#B8A070</SolidColorBrush>     <!-- Tan border -->
+                    <SolidColorBrush x:Key="ButtonHover">#CCA480</SolidColorBrush>      <!-- Soft warm hover -->
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -65,6 +74,24 @@
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="10,4"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ── Action Button: distinct background in both themes ─────────── -->
+        <Style Selector="Button.ActionBtn">
+            <Setter Property="Background" Value="{DynamicResource ButtonBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.ActionBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ButtonHover}"/>
+        </Style>
+        <Style Selector="Button.ActionBtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentAction}"/>
         </Style>
     </Application.Styles>
 </Application>

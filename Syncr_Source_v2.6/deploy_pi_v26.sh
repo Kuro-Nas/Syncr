@@ -27,9 +27,14 @@ else
     exit 1
 fi
 
-# 3. Set Permissions
-echo "Setting permissions..."
+# 3. Set Executable & Serial Device Permissions
+echo "Setting permissions & serial port dialout access..."
 chmod +x "$INSTALL_DIR/$EXECUTABLE"
+sudo usermod -a -G dialout $USER 2>/dev/null || true
+sudo usermod -a -G dialout indraedge 2>/dev/null || true
+sudo chmod 666 /dev/ttyAMA0 2>/dev/null || true
+sudo chmod 666 /dev/ttyS0 2>/dev/null || true
+sudo chmod 666 /dev/ttyUSB* 2>/dev/null || true
 
 # 4. Create Desktop Shortcut (Home Screen)
 echo "Creating Desktop shortcut..."

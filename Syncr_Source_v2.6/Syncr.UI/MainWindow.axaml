@@ -132,7 +132,7 @@
         <!-- Content Area -->
         <Grid Grid.Row="1" ColumnDefinitions="280, *" Background="Transparent">
             <!-- Sidebar -->
-            <Border Grid.Column="0" Background="{DynamicResource SurfaceDark}" BorderBrush="{DynamicResource SurfaceLight}" BorderThickness="0,0,1,0" Padding="15">
+            <Border Grid.Column="0" Background="{DynamicResource SidebarBackground}" BorderBrush="{DynamicResource SurfaceLight}" BorderThickness="0,0,1,0" Padding="15">
                 <StackPanel Spacing="20">
                     <TextBlock Text="MACHINES" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" FontSize="12" LetterSpacing="1"/>
                     
@@ -288,11 +288,11 @@
                                         IsVisible="{Binding CanAddGraph}" Cursor="Hand"/>
                             </Grid>
                             
-                            <ScrollViewer x:Name="GraphScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding GraphPanels}">
+                            <ScrollViewer x:Name="GraphScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Center">
+                                <ItemsControl ItemsSource="{Binding GraphPanels}" HorizontalAlignment="Center">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal"/>
+                                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
@@ -358,7 +358,7 @@
                                                                  </Border>
                                                                  
                                                                  <Button Classes="HeaderAction" Content="Assign" Command="{Binding AssignTagsCommand}" CommandParameter="{Binding $parent[Window]}" ToolTip.Tip="Assign Tags" 
-                                                                         FontSize="11" FontWeight="ExtraBold" Foreground="#8e9baa" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                                         Focusable="False" FontSize="11" FontWeight="ExtraBold" Foreground="#8e9baa" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                                  <Button Classes="HeaderAction" Command="{Binding $parent[Window].DataContext.ToggleGraphFocusCommand}" CommandParameter="{Binding}" ToolTip.Tip="Focus in Freescale Mode">
                                                                      <PathIcon Data="{Binding FocusIcon}" 
                                                                                Width="14" Height="14" Foreground="{Binding IsFocused, Converter={StaticResource StringToColorConverter}, ConverterParameter='True'}"/>
@@ -591,37 +591,36 @@
                                       </Button>
                                   </Grid>
                                   
-                                  <Button Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                  <Button Classes="ActionBtn" Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
                                       <StackPanel Orientation="Horizontal" Spacing="10">
                                           <PathIcon Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" Width="18" Height="18"/>
                                           <TextBlock Text="Data Folder" VerticalAlignment="Center"/>
                                       </StackPanel>
                                   </Button>
 
-                                  <Button Command="{Binding EnterFocusModeCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                  <Button Classes="ActionBtn" Command="{Binding EnterFocusModeCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
                                       <StackPanel Orientation="Horizontal" Spacing="10">
                                           <PathIcon Data="M4,4H10V6H6V10H4V4M20,4V10H18V6H14V4H20M20,20H14V18H18V14H20V20M4,20V14H6V18H10V20H4Z" Width="18" Height="18"/>
                                           <TextBlock Text="Freescale Focus" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                       </StackPanel>
                                   </Button>
                                   
-                                  <Button Command="{Binding OpenSimulationCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                  <Button Classes="ActionBtn" Command="{Binding OpenSimulationCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
                                       <StackPanel Orientation="Horizontal" Spacing="10">
                                           <PathIcon Data="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zM18 6H6v12h12V6zm-5.07 11.17l-2.83-2.83-1.41 1.41L12.93 20l5.66-5.66-1.41-1.41-4.25 4.24z" Width="18" Height="18"/>
                                           <TextBlock Text="Simulation" VerticalAlignment="Center"/>
                                       </StackPanel>
                                   </Button>
                                   
-                                   <Button Command="{Binding OpenCloudConfigCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                   <Button Classes="ActionBtn" Command="{Binding OpenCloudConfigCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
                                       <StackPanel Orientation="Horizontal" Spacing="10">
                                           <PathIcon Data="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" Width="18" Height="18"/>
                                           <TextBlock Text="Cloud Settings" VerticalAlignment="Center"/>
                                       </StackPanel>
                                   </Button>
-
-                                  <Button Command="{Binding OpenConfigCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
+                                  <Button Classes="ActionBtn" Command="{Binding OpenConfigCommand}" HorizontalAlignment="Stretch" Padding="15,12" CornerRadius="6" Margin="10,0">
                                       <StackPanel Orientation="Horizontal" Spacing="10">
-                                          <PathIcon Data="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94s-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.3c-0.59,0.24-1.13,0.56-1.62,0.94L5.24,5.28c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.82c-0.12,0.21-0.07,0.47,0.11,0.61l2.03,1.58C4.84,11.3,4.81,11.63,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.49c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.49c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.21,0.07-0.47-0.11-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" Width="18" Height="18"/>
+                                          <PathIcon Data="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" Width="18" Height="18"/>
                                           <TextBlock Text="Settings" VerticalAlignment="Center"/>
                                       </StackPanel>
                                   </Button>

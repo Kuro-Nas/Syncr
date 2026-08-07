@@ -42,8 +42,18 @@ namespace Syncr.Core.Services
         public void UpdateConfig(AppConfig newConfig)
         {
             Stop();
-            _machines.Clear();
-            _machines.AddRange(newConfig.Machines);
+            // IMPORTANT: _machines is the same List<> reference as newConfig.Machines
+            // (set in constructor: _machines = config.Machines).
+            // If newConfig IS the same AppConfig, Clear+AddRange is a no-op that
+            // would wipe the list and re-add the same items — but if callers pass
+            // _appConfig here, _machines.Clear() wipes _appConfig.Machines too.
+            // Use a safe replace: only clear and re-add if they differ.
+            if (!ReferenceEquals(_machines, newConfig.Machines))
+            {
+                _machines.Clear();
+                _machines.AddRange(newConfig.Machines);
+            }
+            // If same reference, the list is already correct — just restart polling.
             OnConfigChanged?.Invoke();
             Start();
         }

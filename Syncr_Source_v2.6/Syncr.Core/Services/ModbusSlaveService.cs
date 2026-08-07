@@ -63,19 +63,26 @@ namespace Syncr.Core.Services
 
         private async Task SetupSlaveWithRetry(MachineConfig machine)
         {
-            int retryDelay = 2000;
-            while (_isRunning)
+            int retryDelay = 5000;
+            int attempt = 0;
+            while (_isRunning && attempt < 3)
             {
+                attempt++;
                 try
                 {
                     SetupSlave(machine);
                     break; // Successfully initialized
                 }
+                catch (UnauthorizedAccessException uex)
+                {
+                    OnLog?.Invoke($"[Port Access Denied] {machine.Name} cannot open {machine.SerialPort}: {uex.Message}. Fix: sudo usermod -a -G dialout $USER");
+                    break; // Don't loop spam on permission error
+                }
                 catch (Exception ex)
                 {
-                    OnLog?.Invoke($"[Boot Retry] Slave start failed for {machine.Name}: {ex.Message}. Retrying in {retryDelay / 1000}s...");
+                    OnLog?.Invoke($"[Boot Retry] Slave start failed for {machine.Name} ({machine.SerialPort}): {ex.Message}");
+                    if (attempt >= 3) break;
                     try { await Task.Delay(retryDelay); } catch { break; }
-                    retryDelay = Math.Min(10000, retryDelay + 2000);
                 }
             }
         }

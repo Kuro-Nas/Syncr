@@ -239,13 +239,22 @@ namespace Syncr.UI.ViewModels
             }
 
             // Load Master Library templates from ConfigService
+            // Tags is [JsonIgnore] so it's never in config.json — re-attach at runtime.
             try
             {
                 var config = new ConfigService().LoadConfig();
                 if (config.RegisterLibrary != null)
                 {
                     foreach (var tmpl in config.RegisterLibrary)
+                    {
+                        // Re-attach the full preset tag list by matching the known preset names
+                        if (tmpl.Name.Contains("MAX", StringComparison.OrdinalIgnoreCase))
+                            tmpl.Tags = ConfigService.GetDefaultGrowattTags();
+                        else if (tmpl.Name.Contains("MIN", StringComparison.OrdinalIgnoreCase))
+                            tmpl.Tags = ConfigService.GetDefaultGrowattMinTags();
+
                         MasterTemplates.Add(tmpl);
+                    }
                 }
             }
             catch { }
@@ -303,14 +312,36 @@ namespace Syncr.UI.ViewModels
         {
             if (SelectedMasterTemplate == null) return;
 
-            // Auto-increment address if needed
-            ushort nextAddr = SelectedMasterTemplate.DefaultAddress;
-            if (Tags.Any(t => t.Address == nextAddr))
+            // Full-preset: REPLACE all tags with the complete preset tag set
+            if (SelectedMasterTemplate.IsFullPreset)
             {
-                nextAddr = Tags.Count > 0 ? (ushort)(Tags.Max(t => t.Address) + 1) : nextAddr;
+                Tags.Clear();
+                foreach (var srcTag in SelectedMasterTemplate.Tags!)
+                {
+                    var item = new TagItem
+                    {
+                        Address       = srcTag.Address,
+                        Name          = srcTag.Name,
+                        FunctionCode  = srcTag.FunctionCode,
+                        DataType      = srcTag.DataType,
+                        ScalingFactor = srcTag.ScalingFactor,
+                        SiUnit        = srcTag.SiUnit,
+                        IsPlotted     = srcTag.IsPlotted,
+                        Color         = string.IsNullOrWhiteSpace(srcTag.Color) ? "#00FFFF" : srcTag.Color
+                    };
+                    item.OnColorChanged += _ => UpdateModel();
+                    Tags.Add(item);
+                }
+                UpdateModel();
+                return;
             }
 
-            var item = new TagItem
+            // Legacy single-tag: append (auto-increment address if conflict)
+            ushort nextAddr = SelectedMasterTemplate.DefaultAddress;
+            if (Tags.Any(t => t.Address == nextAddr))
+                nextAddr = Tags.Count > 0 ? (ushort)(Tags.Max(t => t.Address) + 1) : nextAddr;
+
+            var single = new TagItem
             {
                 Address       = nextAddr,
                 Name          = SelectedMasterTemplate.Name,
@@ -321,8 +352,8 @@ namespace Syncr.UI.ViewModels
                 IsPlotted     = true,
                 Color         = string.IsNullOrWhiteSpace(SelectedMasterTemplate.Color) ? "#00FFFF" : SelectedMasterTemplate.Color
             };
-            item.OnColorChanged += _ => UpdateModel();
-            Tags.Add(item);
+            single.OnColorChanged += _ => UpdateModel();
+            Tags.Add(single);
             UpdateModel();
         }
 

@@ -1,9 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Syncr.Core.Models
 {
     /// <summary>
     /// Master template for reusable register configurations across machines.
+    /// When Tags is non-null and non-empty this is a full-preset template that
+    /// replaces ALL tags on the machine when imported. Otherwise it appends a
+    /// single tag (legacy behaviour).
     /// </summary>
     public class RegisterTemplate
     {
@@ -17,5 +22,16 @@ namespace Syncr.Core.Models
         public string Color { get; set; } = "#00FFFF";
         public string Category { get; set; } = "General";
         public string Description { get; set; } = "";
+
+        /// <summary>
+        /// Full preset tag list (runtime only, NOT persisted to config.json).
+        /// When non-null this preset REPLACES all machine tags on import.
+        /// </summary>
+        [JsonIgnore]
+        public List<MachineTag>? Tags { get; set; } = null;
+
+        /// <summary>True when this template is a full machine preset (runtime only).</summary>
+        [JsonIgnore]
+        public bool IsFullPreset => Tags != null && Tags.Count > 0;
     }
 }

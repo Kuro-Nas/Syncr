@@ -802,7 +802,6 @@ namespace Syncr.UI.ViewModels
             RefreshGraphAssociations();
 
 
-            InitializeMachines();
             StartService();
             StartClock();
             StartHeartbeatMonitor();
@@ -935,8 +934,8 @@ namespace Syncr.UI.ViewModels
         private Axis CreateTimeAxis()
         {
             bool isDark = _appConfig?.IsDarkTheme ?? true;
-            var labelColor = isDark ? SkiaSharp.SKColor.Parse("#94A3B8") : SkiaSharp.SKColor.Parse("#8A7B68");
-            var gridColor  = isDark ? SkiaSharp.SKColor.Parse("#334155") : SkiaSharp.SKColor.Parse("#E5DCC8");
+            var labelColor = isDark ? SkiaSharp.SKColor.Parse("#94A3B8") : SkiaSharp.SKColor.Parse("#6B5D45");
+            var gridColor  = isDark ? SkiaSharp.SKColor.Parse("#334155") : SkiaSharp.SKColor.Parse("#C7B78E");
 
             return new Axis
             {
@@ -960,8 +959,8 @@ namespace Syncr.UI.ViewModels
         private Axis CreateValueAxis()
         {
             bool isDark = _appConfig?.IsDarkTheme ?? true;
-            var labelColor = isDark ? SkiaSharp.SKColor.Parse("#94A3B8") : SkiaSharp.SKColor.Parse("#8A7B68");
-            var gridColor  = isDark ? SkiaSharp.SKColor.Parse("#334155") : SkiaSharp.SKColor.Parse("#E5DCC8");
+            var labelColor = isDark ? SkiaSharp.SKColor.Parse("#94A3B8") : SkiaSharp.SKColor.Parse("#6B5D45");
+            var gridColor  = isDark ? SkiaSharp.SKColor.Parse("#334155") : SkiaSharp.SKColor.Parse("#C7B78E");
 
             return new Axis
             {
@@ -998,57 +997,68 @@ namespace Syncr.UI.ViewModels
             SaveGraphLayout();
         }
 
+        private bool _isTagPickerOpen = false;
+
         /// <summary>Attaches all interactive commands to a graph panel (used by both AddNewGraphPanel and RestoreGraphLayout).</summary>
         private void WireGraphPanelCommands(GraphPanelViewModel panel)
         {
             panel.AssignTagsCommand = new SimpleCommand<Window>(async w =>
             {
-                var vm = new GraphTagPickerViewModel(GetAllTagPaths(), panel.AssignedTags);
-                var picker = new GraphTagPickerWindow { DataContext = vm };
-                await picker.ShowDialog(w);
-                if (vm.Confirmed)
+                if (_isTagPickerOpen || w == null) return;
+                _isTagPickerOpen = true;
+                try
                 {
-                    panel.AssignedTags = vm.SelectedTagPaths;
-                    // Cleanup removed series
-                    var toRemove = panel.Series.Where(s => s.Name != null && !panel.AssignedTags.Contains(s.Name)).ToList();
-                    foreach (var s in toRemove) panel.Series.Remove(s);
+                    var vm = new GraphTagPickerViewModel(GetAllTagPaths(), panel.AssignedTags);
+                    var picker = new GraphTagPickerWindow { DataContext = vm };
+                    await picker.ShowDialog(w);
+                    if (vm.Confirmed)
+                    {
+                        panel.AssignedTags = vm.SelectedTagPaths;
+                        // Cleanup removed series
+                        var toRemove = panel.Series.Where(s => s.Name != null && !panel.AssignedTags.Contains(s.Name)).ToList();
+                        foreach (var s in toRemove) panel.Series.Remove(s);
 
-                    // Refined naming (v2.1)
-                    if (panel.AssignedTags.Count == 1)
-                    {
-                        var parts = panel.AssignedTags[0].Split(" - ", 2);
-                        panel.Title = parts.Length == 2 ? parts[1] : panel.AssignedTags[0];
-                        panel.DeviceName = parts.Length == 2 ? parts[0] : "";
-                        var tagDef = GetMachineConfig(panel.DeviceName)?.Tags.FirstOrDefault(t => t.Name == (parts.Length == 2 ? parts[1] : parts[0]));
-                        panel.UnitLabel = tagDef?.SiUnit ?? "";
-                    }
-                    else
-                    {
-                        var firstParts = panel.AssignedTags.Count > 0 ? panel.AssignedTags[0].Split(" - ", 2) : new[] { "" };
-                        panel.DeviceName = firstParts.Length == 2 ? firstParts[0] : "";
-                        panel.UnitLabel = "";
-                    }
-
-                    // Re-populate HeaderMetrics for multi-metric display
-                    panel.HeaderMetrics.Clear();
-                    foreach (var path in panel.AssignedTags)
-                    {
-                        var pts  = path.Split(" - ", 2);
-                        var mName = pts.Length == 2 ? pts[0] : "";
-                        var tName = pts.Length == 2 ? pts[1] : pts[0];
-                        var tDef  = GetMachineConfig(mName)?.Tags.FirstOrDefault(t => t.Name == tName);
-                        panel.HeaderMetrics.Add(new TagValueViewModel
+                        // Refined naming (v2.1)
+                        if (panel.AssignedTags.Count == 1)
                         {
-                            Name        = tName,
-                            MachineName = mName,
-                            SiUnit      = tDef?.SiUnit ?? "",
-                            TagColor    = string.IsNullOrEmpty(tDef?.Color) ? "#22d3ee" : tDef!.Color,
-                            Value       = "0.00"
-                        });
-                    }
+                            var parts = panel.AssignedTags[0].Split(" - ", 2);
+                            panel.Title = parts.Length == 2 ? parts[1] : panel.AssignedTags[0];
+                            panel.DeviceName = parts.Length == 2 ? parts[0] : "";
+                            var tagDef = GetMachineConfig(panel.DeviceName)?.Tags.FirstOrDefault(t => t.Name == (parts.Length == 2 ? parts[1] : parts[0]));
+                            panel.UnitLabel = tagDef?.SiUnit ?? "";
+                        }
+                        else
+                        {
+                            var firstParts = panel.AssignedTags.Count > 0 ? panel.AssignedTags[0].Split(" - ", 2) : new[] { "" };
+                            panel.DeviceName = firstParts.Length == 2 ? firstParts[0] : "";
+                            panel.UnitLabel = "";
+                        }
 
-                    RefreshGraphAssociations();
-                    SaveGraphLayout(); // Persist tag assignments
+                        // Re-populate HeaderMetrics for multi-metric display
+                        panel.HeaderMetrics.Clear();
+                        foreach (var path in panel.AssignedTags)
+                        {
+                            var pts  = path.Split(" - ", 2);
+                            var mName = pts.Length == 2 ? pts[0] : "";
+                            var tName = pts.Length == 2 ? pts[1] : pts[0];
+                            var tDef  = GetMachineConfig(mName)?.Tags.FirstOrDefault(t => t.Name == tName);
+                            panel.HeaderMetrics.Add(new TagValueViewModel
+                            {
+                                Name        = tName,
+                                MachineName = mName,
+                                SiUnit      = tDef?.SiUnit ?? "",
+                                TagColor    = string.IsNullOrEmpty(tDef?.Color) ? "#22d3ee" : tDef!.Color,
+                                Value       = "0.00"
+                            });
+                        }
+
+                        RefreshGraphAssociations();
+                        SaveGraphLayout(); // Persist tag assignments
+                    }
+                }
+                finally
+                {
+                    _isTagPickerOpen = false;
                 }
             });
 
@@ -1103,17 +1113,13 @@ namespace Syncr.UI.ViewModels
             
             foreach (var p in GraphPanels)
             {
-                if (GraphPanels.Count == 1)
+                if (GraphPanels.Count == 1 || p.IsExpanded)
                 {
-                    p.GridWidth = Math.Max(450, AvailableGraphWidth - 40); 
-                }
-                else if (p.IsExpanded)
-                {
-                    p.GridWidth = Math.Max(450, AvailableGraphWidth - 40); 
+                    p.GridWidth = Math.Max(450, AvailableGraphWidth - 20); 
                 }
                 else
                 {
-                    p.GridWidth = Math.Max(400, (AvailableGraphWidth / 2) - 30); 
+                    p.GridWidth = Math.Max(380, ((AvailableGraphWidth - 20) / 2) - 8); 
                 }
             }
         }
@@ -1239,34 +1245,42 @@ namespace Syncr.UI.ViewModels
 
         private void InitializeMachines()
         {
-            Dispatcher.UIThread.InvokeAsync(() =>
+            // Read directly from _appConfig which is always authoritative.
+            // _modbusService.Config is the same reference, but reading from _appConfig
+            // is explicit and avoids any confusion about the service state.
+            var machines = _appConfig?.Machines;
+
+            Console.WriteLine($"[InitializeMachines] Found {machines?.Count ?? 0} machine(s) in config.");
+
+            Dispatcher.UIThread.Post(() =>
             {
                 Machines.Clear();
-                if (_modbusService?.Config != null)
+
+                if (machines != null && machines.Count > 0)
                 {
-                    foreach (var config in _modbusService.Config)
+                    foreach (var config in machines)
                     {
                         var vm = new MachineStatusViewModel { Name = config.Name };
                         vm.OnVisibilityChanged += OnMachineVisibilityChanged;
-                        
+
                         // Pre-populate tags so they show up in Live Metrics immediately
                         foreach (var tag in config.Tags)
                         {
-                            vm.Tags.Add(new TagValueViewModel 
-                            { 
-                                Name = tag.Name, 
-                                Value = "—", 
-                                SiUnit = tag.SiUnit ?? "",
-                                TagColor = string.IsNullOrEmpty(tag.Color) ? "#00FFFF" : tag.Color,
+                            vm.Tags.Add(new TagValueViewModel
+                            {
+                                Name        = tag.Name,
+                                Value       = "—",
+                                SiUnit      = tag.SiUnit ?? "",
+                                TagColor    = string.IsNullOrEmpty(tag.Color) ? "#00FFFF" : tag.Color,
                                 MachineName = config.Name
                             });
                         }
-                        
+
                         Machines.Add(vm);
                     }
                 }
-                
-                if (Machines.Count > 0) 
+
+                if (Machines.Count > 0)
                 {
                     SelectedMachine = Machines[0];
                 }
@@ -1276,6 +1290,7 @@ namespace Syncr.UI.ViewModels
                     Machines.Add(placeholder);
                     SelectedMachine = placeholder;
                 }
+
                 OnPropertyChanged(nameof(AllTags));
             });
         }
@@ -1335,9 +1350,10 @@ namespace Syncr.UI.ViewModels
         {
             StatusMessage = "Starting Services...";
 
-            // v2.6.3 Auto-Start Fix: If a saved config with machines already exists on disk,
-            // call UpdateConfig (same path as Save & Close) so polling starts correctly on
-            // every reboot without requiring the user to open Settings and click Save & Close.
+            // v2.6.4 Boot Fix: UpdateConfig populates _modbusService.Config,
+            // then InitializeMachines reads it. Previously InitializeMachines was
+            // called BEFORE this, so on cold-boot Config was empty and no machines
+            // appeared until the user opened Settings and clicked Save & Close.
             if (_appConfig.Machines != null && _appConfig.Machines.Count > 0)
             {
                 _modbusService.UpdateConfig(_appConfig);
@@ -1347,6 +1363,9 @@ namespace Syncr.UI.ViewModels
             {
                 _modbusService.Start();
             }
+
+            // Reinitialize machine list NOW that Config is fully populated
+            InitializeMachines();
 
             _modbusSlaveService.Start();
             StatusMessage = "Running";
@@ -1587,8 +1606,8 @@ namespace Syncr.UI.ViewModels
         private void UpdateGraphAxesColors()
         {
             bool isDark = _appConfig?.IsDarkTheme ?? true;
-            var labelColor = isDark ? SkiaSharp.SKColor.Parse("#94A3B8") : SkiaSharp.SKColor.Parse("#8A7B68");
-            var gridColor  = isDark ? SkiaSharp.SKColor.Parse("#334155") : SkiaSharp.SKColor.Parse("#E5DCC8");
+            var labelColor = isDark ? SkiaSharp.SKColor.Parse("#94A3B8") : SkiaSharp.SKColor.Parse("#6B5D45");
+            var gridColor  = isDark ? SkiaSharp.SKColor.Parse("#334155") : SkiaSharp.SKColor.Parse("#C7B78E");
 
             foreach (var panel in GraphPanels)
             {
