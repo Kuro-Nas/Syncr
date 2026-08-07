@@ -8,7 +8,7 @@ namespace Syncr.UI.ViewModels
     {
         private bool _updatingFromHex = false;
 
-        // ─── HSL ─────────────────────────────────────────────────────────────────
+
         private double _hue = 180;
         public double Hue
         {
@@ -55,7 +55,7 @@ namespace Syncr.UI.ViewModels
         public string SatText => ((int)_saturation).ToString();
         public string LightText => ((int)_lightness).ToString();
 
-        // ─── Avalonia official Color binding ─────────────────────────
+
         private Color _avaloniaColor = Colors.Cyan;
         public Color AvaloniaColor
         {
@@ -108,11 +108,11 @@ namespace Syncr.UI.ViewModels
 
         public string PreviewColor => _hexValue;
 
-        // ─── Result ───────────────────────────────────────────────────────────────
+
         public string SelectedColor { get; private set; }
         public bool Confirmed { get; private set; }
 
-        // ─── Commands ─────────────────────────────────────────────────────────────
+
         public SimpleCommand<string> SetHexCommand  { get; }
         public SimpleCommand<Window> ApplyCommand   { get; }
         public SimpleCommand<Window> CancelCommand  { get; }
@@ -138,7 +138,7 @@ namespace Syncr.UI.ViewModels
             w?.Close();
         }
 
-        // ─── Conversion Helpers ───────────────────────────────────────────────────
+
         private void UpdateHexFromHsl()
         {
             _hexValue = HslToHex(_hue, _saturation / 100.0, _lightness / 100.0);

@@ -13,7 +13,7 @@ namespace Syncr.CLI
     class Program
     {
 
-        // ── ANSI escape helpers ─────────────────────────────────────────────────
+
         static string Fg(int r, int g, int b) => $"\x1b[38;2;{r};{g};{b}m";
         static string Bg(int r, int g, int b) => $"\x1b[48;2;{r};{g};{b}m";
         const string Reset    = "\x1b[0m";
@@ -33,7 +33,7 @@ namespace Syncr.CLI
         static readonly string ColUnit    = Fg(160, 200, 255);          // light blue
         static readonly string ColTime    = Fg(180, 180, 255);          // lavender
 
-        // ── State ───────────────────────────────────────────────────────────────
+
         static readonly ConcurrentDictionary<string, MachineDataPoint> _latest = new();
         static readonly ConcurrentDictionary<string, string>           _status = new();
         static volatile int  _selectedMachineIdx = -1;  // -1 = all
@@ -43,14 +43,14 @@ namespace Syncr.CLI
         static string        _csvPath             = "";
         static int           _pollIntervalMs      = -1;
 
-        // ── Update State ─────────────────────────────────────────────────────
+
         static readonly UpdateService _updater    = new UpdateService();
         static volatile bool          _updateReady = false;
         static string                 _updateMsg   = "";
 
         static async Task Main(string[] args)
         {
-            // ── Parse CLI arguments ─────────────────────────────────────────────
+
             string? machineFilter = GetArg(args, "--machine");
             string? logPath       = GetArg(args, "--log");
             bool    liveMode      = args.Contains("--live") || !args.Contains("--no-live");
@@ -63,14 +63,14 @@ namespace Syncr.CLI
                 _csvLogging = true;
             }
 
-            // ── Print banner ────────────────────────────────────────────────────
+
             PrintBanner();
 
-            // ── Load config ─────────────────────────────────────────────────────
+
             var configService = new ConfigService();
             var config        = configService.LoadConfig();
 
-            // ── Background update check ─────────────────────────────────────────
+
             _updater.OnLog += msg => { /* suppress in CLI — shown in header */ };
             _updater.OnUpdateAvailable += rel =>
             {
@@ -107,7 +107,7 @@ namespace Syncr.CLI
                 }
             }
 
-            // ── Start Modbus polling ────────────────────────────────────────────
+
             var modbusService = new ModbusService(config);
             modbusService.OnDataReceived += (point) =>
             {
@@ -126,7 +126,7 @@ namespace Syncr.CLI
             Console.Write(HideCursor);
             Console.CancelKeyPress += (s, e) => { e.Cancel = true; _running = false; };
 
-            // ── Keyboard handler (background thread) ────────────────────────────
+
             var kbTask = Task.Run(() =>
             {
                 while (_running)
@@ -174,7 +174,7 @@ namespace Syncr.CLI
                 }
             });
 
-            // ── Main display loop ───────────────────────────────────────────────
+
             while (_running)
             {
                 if (liveMode)
@@ -185,7 +185,7 @@ namespace Syncr.CLI
                 await Task.Delay(500);
             }
 
-            // ── Cleanup ─────────────────────────────────────────────────────────
+
             Console.Write(ShowCursor);
             Console.Write(Reset);
             Console.WriteLine();
@@ -193,7 +193,7 @@ namespace Syncr.CLI
             modbusService.Stop();
         }
 
-        // ── Render: Full live dashboard (clear + redraw) ────────────────────────
+
         static void RenderLive(List<MachineConfig> machines)
         {
             var sb = new System.Text.StringBuilder();
@@ -224,7 +224,7 @@ namespace Syncr.CLI
             Console.Write(sb.ToString());
         }
 
-        // ── Banner ──────────────────────────────────────────────────────────────
+
         static void PrintBanner()
         {
             Console.WriteLine();
@@ -235,7 +235,7 @@ namespace Syncr.CLI
             Console.WriteLine();
         }
 
-        // ── Header block ────────────────────────────────────────────────────────
+
         static void PrintHeader(System.Text.StringBuilder sb, List<MachineConfig> machines)
         {
             string time    = DateTime.Now.ToString("HH:mm:ss  dd MMM yyyy");
@@ -271,7 +271,7 @@ namespace Syncr.CLI
             sb.AppendLine();
         }
 
-        // ── Machine block ────────────────────────────────────────────────────────
+
         static void PrintMachineBlock(System.Text.StringBuilder sb, MachineConfig m)
         {
             string st      = _status.GetValueOrDefault(m.Name, "WAITING");
@@ -346,7 +346,7 @@ namespace Syncr.CLI
             sb.AppendLine();
         }
 
-        // ── Footer ───────────────────────────────────────────────────────────────
+
         static void PrintFooter(System.Text.StringBuilder sb, List<MachineConfig> machines)
         {
             int online  = _status.Values.Count(s => s == "ONLINE");
@@ -354,7 +354,7 @@ namespace Syncr.CLI
             sb.AppendLine($"{ColDim}  Status: {ColHeader}{online}/{total} online{ColDim}  |  SYNCR CLI v2.6  |  Press Q to quit{Reset}");
         }
 
-        // ── CSV Logging ───────────────────────────────────────────────────────────
+
         static readonly object _csvLock = new();
         static bool _csvHeaderWritten = false;
 
@@ -378,7 +378,7 @@ namespace Syncr.CLI
             }
         }
 
-        // ── Helpers ──────────────────────────────────────────────────────────────
+
         static string? GetArg(string[] args, string key)
         {
             int idx = Array.IndexOf(args, key);

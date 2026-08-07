@@ -91,7 +91,7 @@ namespace Syncr.Core.Services
 
         private async Task BackgroundPollMachine(MachineConfig machine, CancellationToken token)
         {
-            // Initial settlement delay on boot/start
+            // Initial settlement delay on boot/start — gives OS time to bring up network/USB
             await Task.Delay(500, token).ConfigureAwait(false);
 
             while (_isRunning && machine.IsEnabled && !token.IsCancellationRequested)
@@ -100,7 +100,8 @@ namespace Syncr.Core.Services
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     bool useMock = IsMockMachineActive(machine.Name);
-                    var data = useMock ? await MockRead(machine) : await RealRead(machine);
+                    // Pass poll token so TCP connect can be cancelled on Stop/ReloadConfig
+                    var data = useMock ? await MockRead(machine) : await RealRead(machine, token);
                     sw.Stop();
                     data.LatencyMs = sw.Elapsed.TotalMilliseconds;
                     OnDataReceived?.Invoke(data);
@@ -129,7 +130,7 @@ namespace Syncr.Core.Services
             }
         }
 
-        // ─── Mock ─────────────────────────────────────────────────────────────────
+
         private readonly object _mockLock = new();
         private readonly Dictionary<string, Dictionary<ushort, double>> _mockOverrides = new();
 
@@ -143,7 +144,7 @@ namespace Syncr.Core.Services
             }
         }
 
-        // ─── Mock Auto-Jitter ─────────────────────────────────────────────────────
+
         // Thread-safe random instance for jitter generation
         private static readonly Random _jitterRandom = new Random();
 
@@ -197,7 +198,7 @@ namespace Syncr.Core.Services
             return Task.FromResult(point);
         }
 
-        // ─── Decode Helper ────────────────────────────────────────────────────────
+
         /// <summary>
         /// Number of Modbus holding registers required for a given data type.
         /// </summary>
@@ -303,7 +304,7 @@ namespace Syncr.Core.Services
             return double.IsNaN(raw) || double.IsInfinity(raw) ? 0.0 : raw * tag.ScalingFactor;
         }
 
-        // ─── Function Code Dispatcher ──────────────────────────────────────────────
+
         private static async Task<ushort[]> ExecuteModbusReadAsync(
             IModbusMaster master, 
             byte slaveId, 
@@ -330,11 +331,11 @@ namespace Syncr.Core.Services
             }
         }
 
-        // ─── Real Read ────────────────────────────────────────────────────────────
+
         private IModbusMaster _cachedMaster;
         private SerialPort _cachedPort;
 
-        private async Task<MachineDataPoint> RealRead(MachineConfig machine)
+        private async Task<MachineDataPoint> RealRead(MachineConfig machine, CancellationToken pollToken = default)
         {
             var point = new MachineDataPoint { MachineName = machine.Name, Timestamp = DateTime.Now };
 
@@ -404,7 +405,33 @@ namespace Syncr.Core.Services
             else if (machine.Type == ConnectionType.Tcp)
             {
                 using var client = new TcpClient();
-                await client.ConnectAsync(machine.IpAddress, machine.Port);
+
+                // Race the TCP connect against a 5-second timeout.
+                // IMPORTANT: we do NOT pass the poll token into ConnectAsync directly, because
+                // if the 5s timeout fires it throws OperationCanceledException — and the poll
+                // loop's `catch (OperationCanceledException) { break; }` would permanently kill
+                // the background task. Instead we isolate the connect timeout, catch OCE here,
+                // and re-throw as TimeoutException so the poll loop retries after PollingIntervalMs.
+                using var connectTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                try
+                {
+#if NET5_0_OR_GREATER
+                    await client.ConnectAsync(machine.IpAddress, machine.Port, connectTimeout.Token);
+#else
+                    var connectTask = client.ConnectAsync(machine.IpAddress, machine.Port);
+                    var timeoutTask = Task.Delay(5000, connectTimeout.Token);
+                    if (await Task.WhenAny(connectTask, timeoutTask) == timeoutTask)
+                        throw new TimeoutException($"TCP connect to {machine.IpAddress}:{machine.Port} timed out after 5 s");
+                    await connectTask;
+#endif
+                }
+                catch (OperationCanceledException) when (!pollToken.IsCancellationRequested)
+                {
+                    // The 5-second connect timeout fired — NOT a Stop/ReloadConfig cancellation.
+                    // Convert to TimeoutException so the poll loop logs it and retries.
+                    throw new TimeoutException($"TCP connect to {machine.IpAddress}:{machine.Port} timed out after 5 s");
+                }
+                // If pollToken itself is cancelled, OCE propagates up naturally → loop breaks.
                 var master = _modbusFactory.CreateMaster(client);
 
                 foreach (var tag in machine.Tags)
@@ -424,7 +451,7 @@ namespace Syncr.Core.Services
             return point;
         }
 
-        // ─── Auto Baud Rate Detection ─────────────────────────────────────────────
+
         private static readonly int[] CommonBaudRates = { 9600, 19200, 38400, 57600, 115200, 2400, 4800, 1200 };
 
         /// <summary>

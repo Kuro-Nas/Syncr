@@ -11,53 +11,45 @@ using System.Threading.Tasks;
 namespace Syncr.Core.Services
 {
     /// <summary>
-    /// Self-Update service for SYNCR — GitHub Releases based OTA updates.
-    ///
-    /// HOW IT WORKS:
-    ///   1. On startup SYNCR calls CheckForUpdateAsync() → GitHub API returns latest release info.
-    ///   2. If a newer tag_name is available, UpdateAvailable = true + LatestRelease is populated.
-    ///   3. UI/CLI shows "Update available: vX.Y" banner with a download button.
-    ///   4. User clicks Update → DownloadUpdateAsync() downloads the ZIP asset.
-    ///   5. ApplyUpdateAndRestart() writes a small OS-specific updater script, runs it, then exits.
-    ///   6. The updater script waits for SYNCR to exit, extracts ZIP, re-launches SYNCR.
-    ///
-    /// SETUP (one-time, for the developer):
-    ///   • Set GitHubOwner and GitHubRepo below to your actual repository.
-    ///   • Tag every GitHub release as "vMAJOR.MINOR.PATCH" (e.g. "v2.7.0").
-    ///   • Upload the release asset named exactly as the constants below
-    ///     (SyncrWindowsAsset / SyncrPiAsset).
-    ///   • Bump SyncrVersion.Current before every release and rebuild.
+    /// Self-Update service for SYNCR using GitHub Releases.
     /// </summary>
     public class UpdateService
     {
-        // ── ⚙️  CONFIGURE THESE BEFORE RELEASING ────────────────────────────────
-        public const string GitHubOwner     = "Kuro-Nas";
-        public const string GitHubRepo      = "Syncr";
+        public const string GitHubOwner = "Kuro-Nas";
+        public const string GitHubRepo = "Syncr";
         public const string SyncrWindowsAsset = "Syncr_Windows_x64.zip";
-        public const string SyncrPiAsset      = "Syncr_Pi_arm64.zip";
-        // ─────────────────────────────────────────────────────────────────────────
+        public const string SyncrPiAsset = "Syncr_Pi_arm64.zip";
+        public const string GitHubToken = "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";
 
-        private static readonly HttpClient _http = new HttpClient();
+        private static readonly HttpClient _http;
 
         static UpdateService()
         {
-            // GitHub API requires a User-Agent header
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = true
+            };
+            _http = new HttpClient(handler);
             _http.DefaultRequestHeaders.UserAgent.Add(
                 new ProductInfoHeaderValue("SyncrApp", SyncrVersion.Current));
-            _http.Timeout = TimeSpan.FromSeconds(15);
+
+            if (!string.IsNullOrWhiteSpace(GitHubToken))
+            {
+                _http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", GitHubToken);
+            }
+
+            _http.Timeout = TimeSpan.FromSeconds(30);
         }
 
-        // ── State ────────────────────────────────────────────────────────────────
-        public bool       UpdateAvailable  { get; private set; }
-        public ReleaseInfo? LatestRelease  { get; private set; }
-        public string     CheckError       { get; private set; } = string.Empty;
+        public bool UpdateAvailable { get; private set; }
+        public ReleaseInfo? LatestRelease { get; private set; }
+        public string CheckError { get; private set; } = string.Empty;
 
-        // ── Events ───────────────────────────────────────────────────────────────
         public event Action<ReleaseInfo>? OnUpdateAvailable;
-        public event Action<double>?      OnDownloadProgress;   // 0.0–1.0
-        public event Action<string>?      OnLog;
+        public event Action<double>? OnDownloadProgress;
+        public event Action<string>? OnLog;
 
-        // ── Check for update ────────────────────────────────────────────────────
         public async Task<bool> CheckForUpdateAsync()
         {
             try
@@ -72,7 +64,7 @@ namespace Syncr.Core.Services
                 string latestTag = release.TagName?.TrimStart('v') ?? "0.0.0";
                 string currentTag = SyncrVersion.Current.TrimStart('v');
 
-                Log($"Current: v{currentTag}  |  Latest: v{latestTag}");
+                Log($"Current: v{currentTag} | Latest: v{latestTag}");
 
                 if (IsNewer(latestTag, currentTag))
                 {
@@ -85,58 +77,64 @@ namespace Syncr.Core.Services
                     {
                         if (asset.Name?.Equals(assetName, StringComparison.OrdinalIgnoreCase) == true)
                         {
-                            downloadUrl = asset.BrowserDownloadUrl;
+                            downloadUrl = !string.IsNullOrEmpty(asset.Url) ? asset.Url : asset.BrowserDownloadUrl;
                             break;
                         }
                     }
 
                     LatestRelease = new ReleaseInfo
                     {
-                        Version     = $"v{latestTag}",
-                        TagName     = release.TagName ?? "",
-                        Body        = release.Body ?? "",
+                        Version = $"v{latestTag}",
+                        TagName = release.TagName ?? "",
+                        Body = release.Body ?? "",
                         PublishedAt = release.PublishedAt,
                         DownloadUrl = downloadUrl ?? "",
-                        AssetName   = assetName
+                        AssetName = assetName
                     };
 
                     UpdateAvailable = true;
-                    Log($"✅ Update available: {LatestRelease.Version}");
+                    Log($"Update available: {LatestRelease.Version}");
                     OnUpdateAvailable?.Invoke(LatestRelease);
                     return true;
                 }
 
-                Log("✅ SYNCR is up to date.");
+                Log("SYNCR is up to date.");
                 return false;
             }
             catch (Exception ex)
             {
                 CheckError = ex.Message;
-                Log($"⚠️  Update check failed: {ex.Message}");
+                Log($"Update check failed: {ex.Message}");
                 return false;
             }
         }
 
-        // ── Download the update ZIP ──────────────────────────────────────────────
         public async Task<string?> DownloadUpdateAsync(string downloadUrl)
         {
             try
             {
-                string tempDir  = Path.Combine(Path.GetTempPath(), "SyncrUpdate");
+                string tempDir = Path.Combine(Path.GetTempPath(), "SyncrUpdate");
                 Directory.CreateDirectory(tempDir);
-                string zipPath  = Path.Combine(tempDir, "syncr_update.zip");
+                string zipPath = Path.Combine(tempDir, "syncr_update.zip");
 
                 Log($"Downloading from: {downloadUrl}");
-                using var response = await _http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                if (downloadUrl.Contains("api.github.com"))
+                {
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                }
+
+                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
                 long? total = response.Content.Headers.ContentLength;
                 using var stream = await response.Content.ReadAsStreamAsync();
-                using var file   = File.Create(zipPath);
+                using var file = File.Create(zipPath);
 
                 byte[] buffer = new byte[81920];
-                long   read   = 0;
-                int    chunk;
+                long read = 0;
+                int chunk;
                 while ((chunk = await stream.ReadAsync(buffer)) > 0)
                 {
                     await file.WriteAsync(buffer.AsMemory(0, chunk));
@@ -145,17 +143,16 @@ namespace Syncr.Core.Services
                         OnDownloadProgress?.Invoke((double)read / total.Value);
                 }
 
-                Log($"Downloaded: {zipPath}  ({read / 1024 / 1024:F1} MB)");
+                Log($"Downloaded: {zipPath} ({read / 1024 / 1024:F1} MB)");
                 return zipPath;
             }
             catch (Exception ex)
             {
-                Log($"❌ Download failed: {ex.Message}");
+                Log($"Download failed: {ex.Message}");
                 return null;
             }
         }
 
-        // ── Apply update and restart ─────────────────────────────────────────────
         public void ApplyUpdateAndRestart(string zipPath)
         {
             string appDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -168,10 +165,8 @@ namespace Syncr.Core.Services
 
         private void ApplyWindows(string zipPath, string appDir)
         {
-            // Write a PowerShell updater that waits for SYNCR to exit, then
-            // extracts the zip, re-launches SYNCR, and deletes itself.
             string script = Path.Combine(Path.GetTempPath(), "syncr_updater.ps1");
-            string exe    = Path.Combine(appDir, "Syncr.UI.exe");
+            string exe = Path.Combine(appDir, "Syncr.UI.exe");
             string exeAlt = Path.Combine(appDir, "Syncr.UI.dll");
 
             string launchCmd = File.Exists(exe)
@@ -181,7 +176,6 @@ namespace Syncr.Core.Services
             string psContent = @"$ErrorActionPreference = 'SilentlyContinue'
 Start-Sleep -Seconds 2
 
-# Wait up to 10s for processes to close
 $timeout = 10
 while ($timeout -gt 0 -and (Get-Process -Name 'Syncr.UI', 'Syncr.CLI' -ErrorAction SilentlyContinue)) {
     Start-Sleep -Seconds 1
@@ -203,10 +197,10 @@ Remove-Item '" + script.Replace("'", "''") + @"' -Force -ErrorAction SilentlyCon
 
             var psi = new ProcessStartInfo
             {
-                FileName        = "powershell.exe",
-                Arguments       = $"-NonInteractive -WindowStyle Hidden -File \"{script}\"",
+                FileName = "powershell.exe",
+                Arguments = $"-NonInteractive -WindowStyle Hidden -File \"{script}\"",
                 UseShellExecute = true,
-                CreateNoWindow  = true
+                CreateNoWindow = true
             };
             Process.Start(psi);
             Log("Updater script launched. SYNCR will restart automatically.");
@@ -215,9 +209,7 @@ Remove-Item '" + script.Replace("'", "''") + @"' -Force -ErrorAction SilentlyCon
 
         private void ApplyLinux(string zipPath, string appDir)
         {
-            // Write a bash updater script that handles systemd service stop/restart,
-            // unlinks busy binary files, extracts update, and re-launches app.
-            string script  = Path.Combine(Path.GetTempPath(), "syncr_updater.sh");
+            string script = Path.Combine(Path.GetTempPath(), "syncr_updater.sh");
             string exePath = Path.Combine(appDir, "Syncr.UI");
             string cliPath = Path.Combine(appDir, "Syncr.CLI");
             string dllPath = Path.Combine(appDir, "Syncr.UI.dll");
@@ -228,31 +220,25 @@ echo '=== SYNCR Updater Started ==='
 echo 'Target Dir: " + appDir + @"'
 echo 'Zip File:   " + zipPath + @"'
 
-# 1. Stop systemd service if running so it does not auto-restart old binary
 if command -v systemctl >/dev/null 2>&1; then
     echo 'Stopping systemd syncr.service...'
     sudo systemctl stop syncr.service 2>/dev/null || systemctl stop syncr.service 2>/dev/null || true
 fi
 
-# 2. Wait for running processes to exit & force kill if needed
 sleep 2
 pkill -9 -f 'Syncr.UI' 2>/dev/null || true
 pkill -9 -f 'Syncr.CLI' 2>/dev/null || true
 
-# 3. Unlink/remove existing executables to avoid 'Text file busy' during unzip
 echo 'Removing old binaries...'
 rm -f '" + exePath + @"' '" + cliPath + @"'
 
-# 4. Extract update (preserving user settings and logs)
 echo 'Extracting update package...'
 unzip -o '" + zipPath + @"' -d '" + appDir + @"' -x 'config.json' '*.csv' '*.log'
 
-# 5. Restore executable permissions
 echo 'Setting permissions...'
 chmod +x '" + exePath + @"' '" + cliPath + @"' 2>/dev/null || true
 chmod +x '" + appDir + @"'/* 2>/dev/null || true
 
-# 6. Re-launch SYNCR (via systemd if available, else standalone background process)
 if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled syncr.service 2>/dev/null; then
     echo 'Restarting syncr.service via systemd...'
     sudo systemctl start syncr.service 2>/dev/null || systemctl start syncr.service 2>/dev/null
@@ -287,7 +273,6 @@ rm -- ""$0""
             Environment.Exit(0);
         }
 
-        // ── Version comparison (semver-aware) ───────────────────────────────────
         private static bool IsNewer(string latest, string current)
         {
             return Version.TryParse(NormVer(latest), out var lv) &&
@@ -297,7 +282,6 @@ rm -- ""$0""
 
         private static string NormVer(string v)
         {
-            // Ensure at least 3 parts for Version.Parse
             var parts = v.Split('.');
             return parts.Length >= 3 ? v :
                    parts.Length == 2 ? $"{v}.0" : $"{v}.0.0";
@@ -305,32 +289,31 @@ rm -- ""$0""
 
         private void Log(string msg) => OnLog?.Invoke(msg);
 
-        // ── GitHub API response models ───────────────────────────────────────────
         private class GitHubRelease
         {
-            [JsonProperty("tag_name")]    public string?       TagName     { get; set; }
-            [JsonProperty("name")]        public string?       Name        { get; set; }
-            [JsonProperty("body")]        public string?       Body        { get; set; }
-            [JsonProperty("published_at")]public DateTime      PublishedAt { get; set; }
-            [JsonProperty("assets")]      public GitHubAsset[]? Assets    { get; set; }
+            [JsonProperty("tag_name")] public string? TagName { get; set; }
+            [JsonProperty("name")] public string? Name { get; set; }
+            [JsonProperty("body")] public string? Body { get; set; }
+            [JsonProperty("published_at")] public DateTime PublishedAt { get; set; }
+            [JsonProperty("assets")] public GitHubAsset[]? Assets { get; set; }
         }
 
         private class GitHubAsset
         {
-            [JsonProperty("name")]                  public string? Name               { get; set; }
-            [JsonProperty("browser_download_url")]  public string? BrowserDownloadUrl { get; set; }
-            [JsonProperty("size")]                  public long    Size               { get; set; }
+            [JsonProperty("name")] public string? Name { get; set; }
+            [JsonProperty("browser_download_url")] public string? BrowserDownloadUrl { get; set; }
+            [JsonProperty("url")] public string? Url { get; set; }
+            [JsonProperty("size")] public long Size { get; set; }
         }
     }
 
-    // ── Public model surfaced to UI/CLI ──────────────────────────────────────────
     public class ReleaseInfo
     {
-        public string   Version     { get; set; } = "";
-        public string   TagName     { get; set; } = "";
-        public string   Body        { get; set; } = "";
+        public string Version { get; set; } = "";
+        public string TagName { get; set; } = "";
+        public string Body { get; set; } = "";
         public DateTime PublishedAt { get; set; }
-        public string   DownloadUrl { get; set; } = "";
-        public string   AssetName   { get; set; } = "";
+        public string DownloadUrl { get; set; } = "";
+        public string AssetName { get; set; } = "";
     }
 }

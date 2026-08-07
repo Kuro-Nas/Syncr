@@ -104,7 +104,7 @@ namespace Syncr.Core.Services
             }
         }
 
-        // ── Programmatic Golden-Ratio Color Generator ────────────────────────────
+
         private static string GetTagColor(int index)
         {
             double hue = (index * 137.508) % 360.0;
@@ -128,7 +128,7 @@ namespace Syncr.Core.Services
             return $"#{ri:X2}{gi:X2}{bi:X2}";
         }
 
-        // ── Official Growatt MAX Series (Protocol_II v1.05+) Tag Set (163 tags) ──
+
         public static List<MachineTag> GetDefaultGrowattTags()
         {
             var FC04 = ModbusFunctionCode.ReadInputRegisters;
@@ -137,7 +137,7 @@ namespace Syncr.Core.Services
 
             var tags = new List<MachineTag>();
 
-            // ── CATEGORY 1: Inverter Status & Primary Solar DC ───────────────────
+
             tags.Add(new MachineTag { Address = 0,  Name = "Inverter Status",      FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 1.0,  SiUnit = "",    IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 1,  Name = "PV Input Power",       FunctionCode = FC04, DataType = TagDataType.UInt32, ScalingFactor = 0.1,  SiUnit = "W",   IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 3,  Name = "PV1 Voltage",          FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "VDC", IsPlotted = true,  Color = GetTagColor(ci++) });
@@ -147,7 +147,7 @@ namespace Syncr.Core.Services
             tags.Add(new MachineTag { Address = 8,  Name = "PV2 Current",          FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "A",   IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 9,  Name = "PV2 Power",            FunctionCode = FC04, DataType = TagDataType.UInt32, ScalingFactor = 0.1,  SiUnit = "W",   IsPlotted = true,  Color = GetTagColor(ci++) });
 
-            // ── CATEGORY 2: Grid AC Output (Phase 1, Phase 2, Phase 3) ───────────
+
             tags.Add(new MachineTag { Address = 35, Name = "AC Output Power",      FunctionCode = FC04, DataType = TagDataType.UInt32, ScalingFactor = 0.1,  SiUnit = "W",   IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 37, Name = "Grid Frequency",       FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.01, SiUnit = "Hz",  IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 38, Name = "Grid Voltage Vac1",    FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "VAC", IsPlotted = true,  Color = GetTagColor(ci++) });
@@ -163,12 +163,12 @@ namespace Syncr.Core.Services
             tags.Add(new MachineTag { Address = 51, Name = "Line Voltage Vac_ST",  FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "VAC", IsPlotted = false, Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 52, Name = "Line Voltage Vac_TR",  FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "VAC", IsPlotted = false, Color = GetTagColor(ci++) });
 
-            // ── CATEGORY 3: Energy Production & Accumulation ─────────────────────
+
             tags.Add(new MachineTag { Address = 53, Name = "Energy Today",         FunctionCode = FC04, DataType = TagDataType.UInt32, ScalingFactor = 0.1,  SiUnit = "kWh", IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 55, Name = "Energy Total",         FunctionCode = FC04, DataType = TagDataType.UInt32, ScalingFactor = 0.1,  SiUnit = "kWh", IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 57, Name = "Work Time Total",      FunctionCode = FC04, DataType = TagDataType.UInt32, ScalingFactor = 0.5,  SiUnit = "h",   IsPlotted = false, Color = GetTagColor(ci++) });
 
-            // ── CATEGORY 4: Temperature, Health & Diagnostics ────────────────────
+
             tags.Add(new MachineTag { Address = 93, Name = "Inverter Temperature", FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "°C",  IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 94, Name = "IPM Temperature",      FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "°C",  IsPlotted = true,  Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 95, Name = "Boost Temperature",    FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 0.1,  SiUnit = "°C",  IsPlotted = false, Color = GetTagColor(ci++) });
@@ -180,7 +180,7 @@ namespace Syncr.Core.Services
             tags.Add(new MachineTag { Address = 105, Name = "Fault Code",          FunctionCode = FC04, DataType = TagDataType.UInt16, ScalingFactor = 1.0,  SiUnit = "",    IsPlotted = false, Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 110, Name = "Warning Bitmask",     FunctionCode = FC04, DataType = TagDataType.UInt32, ScalingFactor = 1.0,  SiUnit = "",    IsPlotted = false, Color = GetTagColor(ci++) });
 
-            // ── CATEGORY 5: PV String Monitoring (Strings 1–16) ──────────────────
+
             for (int s = 1; s <= 16; s++)
             {
                 ushort vAddr = (ushort)(141 + (s - 1) * 2);
@@ -189,7 +189,7 @@ namespace Syncr.Core.Services
                 tags.Add(new MachineTag { Address = iAddr, Name = $"String {s} Current", FunctionCode = FC04, DataType = TagDataType.Int16,  ScalingFactor = 0.1, SiUnit = "A",   IsPlotted = (s <= 4), Color = GetTagColor(ci++) });
             }
 
-            // ── CATEGORY 6: Holding Registers Configuration (FC03) ───────────────
+
             tags.Add(new MachineTag { Address = 0,  Name = "Remote On/Off",        FunctionCode = FC03, DataType = TagDataType.UInt16, ScalingFactor = 1.0,  SiUnit = "",    IsPlotted = false, Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 3,  Name = "Active Power Rate %",  FunctionCode = FC03, DataType = TagDataType.UInt16, ScalingFactor = 1.0,  SiUnit = "%",   IsPlotted = false, Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 4,  Name = "Reactive Power Rate",  FunctionCode = FC03, DataType = TagDataType.UInt16, ScalingFactor = 1.0,  SiUnit = "%",   IsPlotted = false, Color = GetTagColor(ci++) });
@@ -200,7 +200,7 @@ namespace Syncr.Core.Services
             tags.Add(new MachineTag { Address = 44, Name = "Tracker/Phase Config", FunctionCode = FC03, DataType = TagDataType.UInt16, ScalingFactor = 1.0,  SiUnit = "",    IsPlotted = false, Color = GetTagColor(ci++) });
             tags.Add(new MachineTag { Address = 45, Name = "System Date/Time",     FunctionCode = FC03, DataType = TagDataType.UInt16, ScalingFactor = 1.0,  SiUnit = "",    IsPlotted = false, Color = GetTagColor(ci++) });
 
-            // ── CATEGORY 7: Extended Diagnostic & Historical Records ────────────
+
             for (int r = 1; r <= 25; r++)
             {
                 ushort addr = (ushort)(180 + (r - 1) * 2);
@@ -218,7 +218,7 @@ namespace Syncr.Core.Services
             return tags;
         }
 
-        // ── Full-Preset Template Library (2 presets only) ────────────────────────
+
         private static List<RegisterTemplate> GetDefaultTemplates()
         {
             return new List<RegisterTemplate>
@@ -240,7 +240,7 @@ namespace Syncr.Core.Services
             };
         }
 
-        // ── Official Growatt MIN Series (Single-Phase Residential) Tag Set ────────
+
         public static List<MachineTag> GetDefaultGrowattMinTags()
         {
             var FC04 = ModbusFunctionCode.ReadInputRegisters;

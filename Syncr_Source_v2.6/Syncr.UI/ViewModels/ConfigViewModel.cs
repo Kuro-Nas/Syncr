@@ -18,20 +18,19 @@ namespace Syncr.UI.ViewModels
 
         public ObservableCollection<MachineConfig> Machines { get; set; }
 
-        public SimpleCommand SaveCommand                          { get; }
-        public SimpleCommand AddMachineCommand                    { get; }
-        public SimpleCommand<MachineConfig> RemoveMachineCommand  { get; }
-        public SimpleCommand<MachineConfig> EditTagsCommand       { get; }
+        public SimpleCommand SaveCommand { get; }
+        public SimpleCommand AddMachineCommand { get; }
+        public SimpleCommand<MachineConfig> RemoveMachineCommand { get; }
+        public SimpleCommand<MachineConfig> EditTagsCommand { get; }
         public SimpleCommand<MachineConfig> AutoDetectBaudCommand { get; }
-        public SimpleCommand CheckForUpdatesCommand               { get; }
-        public SimpleCommand InstallUpdateCommand                 { get; }
-        public SimpleCommand ToggleThemeCommand                   { get; }
+        public SimpleCommand CheckForUpdatesCommand { get; }
+        public SimpleCommand InstallUpdateCommand { get; }
+        public SimpleCommand ToggleThemeCommand { get; }
 
         public event Action<MachineConfig>? RequestEditTags;
 
         private AppConfig _appConfig;
 
-        // ── Auto-baud feedback ──────────────────────────────────────────────────
         private string _baudStatus = "";
         public string BaudStatus
         {
@@ -46,7 +45,6 @@ namespace Syncr.UI.ViewModels
             set { _isScanningBaud = value; OnPropertyChanged(); }
         }
 
-        // ── Theme Management ───────────────────────────────────────────────────
         private bool _isDarkTheme = true;
         public bool IsDarkTheme
         {
@@ -69,7 +67,6 @@ namespace Syncr.UI.ViewModels
             }
         }
 
-        // ── Software Updates (Inside Settings Modal) ─────────────────────────
         private readonly UpdateService _updateService = new UpdateService();
 
         public string AppVersionDisplay => SyncrVersion.Display;
@@ -111,55 +108,54 @@ namespace Syncr.UI.ViewModels
 
         public ConfigViewModel(Action? closeAction, ModbusService? modbusService = null)
         {
-            _closeAction      = closeAction;
-            _modbusService    = modbusService;
-            _configService    = new ConfigService();
-            _appConfig        = _configService.LoadConfig();
-            Machines          = new ObservableCollection<MachineConfig>(_appConfig.Machines);
-            IsDarkTheme       = _appConfig.IsDarkTheme;
+            _closeAction = closeAction;
+            _modbusService = modbusService;
+            _configService = new ConfigService();
+            _appConfig = _configService.LoadConfig();
+            Machines = new ObservableCollection<MachineConfig>(_appConfig.Machines);
+            IsDarkTheme = _appConfig.IsDarkTheme;
 
-            SaveCommand             = new SimpleCommand(Save);
-            AddMachineCommand       = new SimpleCommand(AddMachine);
-            RemoveMachineCommand    = new SimpleCommand<MachineConfig>(RemoveMachine);
-            EditTagsCommand         = new SimpleCommand<MachineConfig>(EditTags);
-            AutoDetectBaudCommand   = new SimpleCommand<MachineConfig>(async m => await RunAutoBaud(m));
-            ToggleThemeCommand      = new SimpleCommand(() => IsDarkTheme = !IsDarkTheme);
+            SaveCommand = new SimpleCommand(Save);
+            AddMachineCommand = new SimpleCommand(AddMachine);
+            RemoveMachineCommand = new SimpleCommand<MachineConfig>(RemoveMachine);
+            EditTagsCommand = new SimpleCommand<MachineConfig>(EditTags);
+            AutoDetectBaudCommand = new SimpleCommand<MachineConfig>(async m => await RunAutoBaud(m));
+            ToggleThemeCommand = new SimpleCommand(() => IsDarkTheme = !IsDarkTheme);
 
-            // Update commands
             _updateService.OnLog += (msg) => UpdateStatusText = msg;
             _updateService.OnUpdateAvailable += (rel) =>
             {
-                UpdateAvailable  = true;
-                UpdateStatusText = $"🆕  Update available: {rel.Version}  ({rel.PublishedAt:d MMM yyyy})";
+                UpdateAvailable = true;
+                UpdateStatusText = $"Update available: {rel.Version} ({rel.PublishedAt:d MMM yyyy})";
             };
             _updateService.OnDownloadProgress += (pct) =>
             {
-                UpdateProgress   = pct;
+                UpdateProgress = pct;
                 UpdateStatusText = $"Downloading... {pct * 100:F0}%";
             };
 
             CheckForUpdatesCommand = new SimpleCommand(async () =>
             {
                 IsCheckingUpdates = true;
-                UpdateStatusText  = "Checking GitHub repository for updates...";
+                UpdateStatusText = "Checking GitHub repository for updates...";
                 bool found = await _updateService.CheckForUpdateAsync();
                 IsCheckingUpdates = false;
                 if (!found && string.IsNullOrEmpty(_updateService.CheckError))
-                    UpdateStatusText = "✅  SYNCR is up to date!";
+                    UpdateStatusText = "SYNCR is up to date!";
                 else if (!string.IsNullOrEmpty(_updateService.CheckError))
-                    UpdateStatusText = $"⚠️  Update check error: {_updateService.CheckError}";
+                    UpdateStatusText = $"Update check error: {_updateService.CheckError}";
             });
 
             InstallUpdateCommand = new SimpleCommand(async () =>
             {
                 if (_updateService.LatestRelease == null) return;
-                IsUpdating       = true;
+                IsUpdating = true;
                 UpdateStatusText = "Downloading update package...";
                 string? zip = await _updateService.DownloadUpdateAsync(_updateService.LatestRelease.DownloadUrl);
                 if (zip == null)
                 {
-                    IsUpdating       = false;
-                    UpdateStatusText = "❌ Download failed — check internet connection";
+                    IsUpdating = false;
+                    UpdateStatusText = "Download failed — check internet connection";
                     return;
                 }
                 UpdateStatusText = "Applying update — SYNCR will restart...";
@@ -186,20 +182,20 @@ namespace Syncr.UI.ViewModels
         {
             if (machine == null || IsScanningBaud) return;
             IsScanningBaud = true;
-            BaudStatus = "Scanning…";
+            BaudStatus = "Scanning...";
 
             var svc = _modbusService ?? new ModbusService(new AppConfig { Machines = new List<MachineConfig> { machine } });
             var progress = new Progress<string>(s => BaudStatus = s);
 
             int result = await svc.AutoDetectBaudRateAsync(machine, progress);
 
-            BaudStatus     = result > 0 ? $"✓ {result} baud" : "✗ Not found";
+            BaudStatus = result > 0 ? $"{result} baud" : "Not found";
             IsScanningBaud = false;
         }
 
         private void Save()
         {
-            _appConfig.Machines    = new List<MachineConfig>(Machines);
+            _appConfig.Machines = new List<MachineConfig>(Machines);
             _appConfig.IsDarkTheme = IsDarkTheme;
             _configService.SaveConfig(_appConfig);
             _closeAction?.Invoke();

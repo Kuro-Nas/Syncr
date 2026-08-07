@@ -103,7 +103,7 @@ namespace Syncr.UI.ViewModels
         private readonly Window _ownerWindow;
         public ObservableCollection<TagItem> Tags { get; }
 
-        // ─── Copy Tags From ───────────────────────────────────────────────────────
+
         /// <summary>All other machines available to copy tags from.</summary>
         public ObservableCollection<MachineConfig> CopySourceMachines { get; } = new ObservableCollection<MachineConfig>();
 
@@ -117,7 +117,7 @@ namespace Syncr.UI.ViewModels
         /// <summary>True when there is at least one other machine to copy tags from.</summary>
         public bool HasCopySourceMachines => CopySourceMachines.Count > 0;
 
-        // ─── Add-row fields ───────────────────────────────────────────────────────
+
         private string _newAddress = "";
         public string NewAddress
         {
@@ -167,7 +167,7 @@ namespace Syncr.UI.ViewModels
             set { _newColor = value; OnPropertyChanged(); }
         }
 
-        // ─── Selected Tag Row Pre-Fill (Requirement 3) ────────────────────────────
+
         private TagItem? _selectedTagItem;
         public TagItem? SelectedTagItem
         {
@@ -193,10 +193,10 @@ namespace Syncr.UI.ViewModels
         }
 
         public bool IsEditingSelectedTag => SelectedTagItem != null;
-        public string AddOrUpdateBtnText => IsEditingSelectedTag ? "✓ Update" : "＋ Add";
+        public string AddOrUpdateBtnText => IsEditingSelectedTag ? "Update" : "Add";
         public string AddOrUpdateBtnBackground => IsEditingSelectedTag ? "#2ecc71" : "#5e81f4";
 
-        // ─── Master Library Import ───────────────────────────────────────────────
+
         public ObservableCollection<RegisterTemplate> MasterTemplates { get; } = new ObservableCollection<RegisterTemplate>();
 
         private RegisterTemplate? _selectedMasterTemplate;
@@ -206,7 +206,7 @@ namespace Syncr.UI.ViewModels
             set { _selectedMasterTemplate = value; OnPropertyChanged(); }
         }
 
-        // ─── Commands ─────────────────────────────────────────────────────────────
+
         public SimpleCommand AddTagCommand                           { get; }
         public SimpleCommand ClearSelectionCommand                   { get; }
         public SimpleCommand<TagItem> RemoveTagCommand              { get; }
@@ -282,7 +282,7 @@ namespace Syncr.UI.ViewModels
             SaveTagsCommand               = new SimpleCommand<Window>(SaveAndClose);
         }
 
-        // ─── Copy Tags From Machine ───────────────────────────────────────────────
+
         private void CopyTagsFromMachine()
         {
             if (SelectedCopySource == null || SelectedCopySource.Tags.Count == 0) return;

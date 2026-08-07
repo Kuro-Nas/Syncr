@@ -478,7 +478,7 @@ namespace Syncr.UI.ViewModels
             set { _isTerminalEnlarged = value; OnPropertyChanged(); }
         }
 
-        // ─── Live Metrics Popout (Fix #6) ─────────────────────────────────────────
+
         private bool _isMetricsEnlarged;
         public bool IsMetricsEnlarged
         {
@@ -545,7 +545,7 @@ namespace Syncr.UI.ViewModels
         public IEnumerable<TagValueViewModel> SelectedMachineTags =>
             SelectedMachine?.Tags ?? Enumerable.Empty<TagValueViewModel>();
 
-        // ─── v2.5 Multi-Graph System ─────────────────────────────────────────────
+
         private double _availableGraphWidth = 1000;
         public double AvailableGraphWidth
         {
@@ -591,7 +591,7 @@ namespace Syncr.UI.ViewModels
         public SimpleCommand OpenCloudConfigCommand { get; }
         public SimpleCommand InstallUpdateCommand   { get; private set; }
 
-        // ── Update Banner ─────────────────────────────────────────────────────────
+
         private readonly UpdateService _updateService = new UpdateService();
 
         private bool _updateAvailable;
@@ -663,14 +663,14 @@ namespace Syncr.UI.ViewModels
             OpenDataFolderCommand = new SimpleCommand(OpenDataFolder);
             OpenCloudConfigCommand = new SimpleCommand(OpenCloudConfig);
 
-            // ── Update Command ────────────────────────────────────────────────────
+
             _updateService.OnLog += (msg) => StatusMessage = msg;
             _updateService.OnUpdateAvailable += (rel) =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
                     UpdateAvailable   = true;
-                    UpdateBannerText  = $"🆕  Update available: {rel.Version}  —  Click to install";
+                    UpdateBannerText  = $"Update available: {rel.Version} - Click to install";
                     StatusMessage     = $"Update available: {rel.Version}  ({rel.PublishedAt:d MMM yyyy})";
                 });
             };
@@ -701,7 +701,7 @@ namespace Syncr.UI.ViewModels
                 _updateService.ApplyUpdateAndRestart(zip);
             });
 
-            // ── Background update check (5 s after boot, non-blocking) ────────────
+
             _ = Task.Run(async () =>
             {
                 await Task.Delay(5000);
@@ -854,7 +854,7 @@ namespace Syncr.UI.ViewModels
             return list;
         }
 
-        // ─── Graph Layout Persistence (Fix #4) ───────────────────────────────────
+
 
         /// <summary>Saves all current graph panels to AppConfig and persists to disk.</summary>
         private void SaveGraphLayout()
@@ -1224,7 +1224,7 @@ namespace Syncr.UI.ViewModels
                 CloudStatus = $"Cloud: {status}";
                 StatusMessage = $"[CLOUD] {status}"; // Send to Terminal Log
                 if (status == "Connected" || status == "Data Pushed") CloudStatusColor = SKColors.Green;
-                else if (status.StartsWith("Error") || status.StartsWith("Push Error") || status.StartsWith("✗")) CloudStatusColor = SKColors.Red;
+                else if (status.StartsWith("Error") || status.StartsWith("Push Error")) CloudStatusColor = SKColors.Red;
                 else CloudStatusColor = SKColors.Gray;
             });
             UpdateCloudTelemetry();

@@ -5,6 +5,7 @@
 
 APP_NAME="KuroSyncr"
 INSTALL_DIR="/home/indraedge/SyncrEdge"
+EXECUTABLE="Syncr.UI"
 # Default zip package for Pi ARM64
 ZIP_FILE="Syncr_Pi_arm64.zip"
 if [ ! -f "$ZIP_FILE" ]; then
@@ -14,7 +15,7 @@ fi
 echo "Starting Syncr v2.6 Deployment..."
 
 # 1. Stop existing service
-echo "⏹ Stopping existing service..."
+echo "Stopping existing service..."
 sudo systemctl stop syncr.service 2>/dev/null
 
 # 2. Extract Files
@@ -66,8 +67,9 @@ sudo systemctl disable syncr.service 2>/dev/null
 
 sudo bash -c "cat <<EOF > /etc/systemd/system/syncr.service
 [Unit]
-Description=Syncr Edge v2.6.2 Application
-After=graphical.target
+Description=Syncr Edge v2.6.7 Application
+After=graphical.target network-online.target
+Wants=network-online.target
 
 [Service]
 Environment=DISPLAY=:0
@@ -89,12 +91,12 @@ sudo systemctl enable syncr.service
 sudo systemctl restart syncr.service
 
 echo "--------------------------------------------------------"
-echo "Syncr v2.6.2 Installed Successfully!"
+echo "Syncr v2.6.7 Installed Successfully!"
 echo "--------------------------------------------------------"
-echo "Fixes Included (v2.6.2):"
-echo "   - Multi-machine Simulation (Limit Removed)"
-echo "   - Diverse Industrial Data Generation"
-echo "   - Instant Live Metrics Visibility (Pre-populated)"
+echo "Fixes Included (v2.6.7):"
+echo "   - Auto-connect on Boot Fixed (network-online.target)"
+echo "   - TCP Connect 5-second Timeout (no more 2-min hangs)"
+echo "   - Machines show immediately without Save & Close"
 echo "--------------------------------------------------------"
 echo "Press any key to finish..."
 read -n 1

@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.LinuxFramebuffer;
 using System;
 using System.Linq;
@@ -18,7 +18,7 @@ class Program
             try { System.IO.File.WriteAllText("crash_global.log", error.ExceptionObject.ToString()); } catch { }
         };
 
-        // ─── Single Instance Guard ───────────────────────────────────────────────
+
         // Prevents double-launch (e.g. systemd service + desktop shortcut both firing)
         // This was causing ~720MB extra RAM usage from the second instance on Pi.
         const string MutexName = "Global\\SyncrEdge_v2";

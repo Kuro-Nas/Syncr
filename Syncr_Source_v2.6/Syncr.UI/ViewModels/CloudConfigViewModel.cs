@@ -60,7 +60,7 @@ namespace Syncr.UI.ViewModels
         {
             if (IsTesting || _supabaseService == null) return;
             IsTesting  = true;
-            TestStatus = "Testing…";
+            TestStatus = "Testing...";
 
             // Re-init with current form values before testing
             _config.SupabaseUrl = SupabaseUrl;
@@ -69,7 +69,7 @@ namespace Syncr.UI.ViewModels
             await Task.Delay(500); // Give service time to re-init
 
             var res = await _supabaseService.TestConnectionAsync();
-            TestStatus = res.ok ? "✓ Connected" : $"✗ {res.error}";
+            TestStatus = res.ok ? "Connected" : $"Error: {res.error}";
             IsTesting  = false;
         }
 
