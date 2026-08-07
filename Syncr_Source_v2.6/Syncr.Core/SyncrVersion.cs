@@ -7,7 +7,7 @@ namespace Syncr.Core
     /// </summary>
     public static class SyncrVersion
     {
-        public const string Current = "2.6.5";
+        public const string Current = "2.6.6";
         public const string Display = $"SYNCR v{Current}";
     }
 }

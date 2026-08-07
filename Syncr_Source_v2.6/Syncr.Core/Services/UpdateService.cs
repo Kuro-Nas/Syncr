@@ -178,23 +178,35 @@ namespace Syncr.Core.Services
                 ? $"Start-Process '{exe}'"
                 : $"Start-Process 'dotnet' -ArgumentList '{exeAlt}'";
 
-            File.WriteAllText(script,
-$"""
+            string psContent = @"$ErrorActionPreference = 'SilentlyContinue'
 Start-Sleep -Seconds 2
-Write-Host "SYNCR Updater: Extracting..."
-# Exclude config.json and log files so user settings and data are preserved 100%
-Expand-Archive -Path '{zipPath.Replace("'", "''")}' -DestinationPath '{appDir.Replace("'", "''")}' -Force
-Write-Host "SYNCR Updater: Launching SYNCR..."
-{launchCmd}
-Remove-Item '{script.Replace("'", "''")}' -Force
-""");
+
+# Wait up to 10s for processes to close
+$timeout = 10
+while ($timeout -gt 0 -and (Get-Process -Name 'Syncr.UI', 'Syncr.CLI' -ErrorAction SilentlyContinue)) {
+    Start-Sleep -Seconds 1
+    $timeout--
+}
+Stop-Process -Name 'Syncr.UI', 'Syncr.CLI' -Force -ErrorAction SilentlyContinue
+
+Write-Host 'SYNCR Updater: Extracting...'
+Expand-Archive -Path '" + zipPath.Replace("'", "''") + @"' -DestinationPath '" + appDir.Replace("'", "''") + @"' -Force
+
+Write-Host 'SYNCR Updater: Launching SYNCR...'
+" + launchCmd + @"
+
+Remove-Item '" + zipPath.Replace("'", "''") + @"' -Force -ErrorAction SilentlyContinue
+Remove-Item '" + script.Replace("'", "''") + @"' -Force -ErrorAction SilentlyContinue
+";
+
+            File.WriteAllText(script, psContent);
 
             var psi = new ProcessStartInfo
             {
                 FileName        = "powershell.exe",
                 Arguments       = $"-NonInteractive -WindowStyle Hidden -File \"{script}\"",
                 UseShellExecute = true,
-                CreateNoWindow  = false
+                CreateNoWindow  = true
             };
             Process.Start(psi);
             Log("Updater script launched. SYNCR will restart automatically.");
@@ -203,24 +215,74 @@ Remove-Item '{script.Replace("'", "''")}' -Force
 
         private void ApplyLinux(string zipPath, string appDir)
         {
-            // Write a bash updater script
+            // Write a bash updater script that handles systemd service stop/restart,
+            // unlinks busy binary files, extracts update, and re-launches app.
             string script  = Path.Combine(Path.GetTempPath(), "syncr_updater.sh");
+            string exePath = Path.Combine(appDir, "Syncr.UI");
+            string cliPath = Path.Combine(appDir, "Syncr.CLI");
             string dllPath = Path.Combine(appDir, "Syncr.UI.dll");
 
-            File.WriteAllText(script,
-$"""
-#!/bin/bash
+            string bashContent = @"#!/bin/bash
+exec > /tmp/syncr_updater.log 2>&1
+echo '=== SYNCR Updater Started ==='
+echo 'Target Dir: " + appDir + @"'
+echo 'Zip File:   " + zipPath + @"'
+
+# 1. Stop systemd service if running so it does not auto-restart old binary
+if command -v systemctl >/dev/null 2>&1; then
+    echo 'Stopping systemd syncr.service...'
+    sudo systemctl stop syncr.service 2>/dev/null || systemctl stop syncr.service 2>/dev/null || true
+fi
+
+# 2. Wait for running processes to exit & force kill if needed
 sleep 2
-echo "SYNCR Updater: Extracting..."
-# Exclude config.json and data files from overwrite
-unzip -o '{zipPath}' -d '{appDir}' -x "config.json" "*.csv" "*.log"
-echo "SYNCR Updater: Launching SYNCR..."
-nohup dotnet '{dllPath}' &
-rm -- "$0"
-""");
-            // Make it executable
+pkill -9 -f 'Syncr.UI' 2>/dev/null || true
+pkill -9 -f 'Syncr.CLI' 2>/dev/null || true
+
+# 3. Unlink/remove existing executables to avoid 'Text file busy' during unzip
+echo 'Removing old binaries...'
+rm -f '" + exePath + @"' '" + cliPath + @"'
+
+# 4. Extract update (preserving user settings and logs)
+echo 'Extracting update package...'
+unzip -o '" + zipPath + @"' -d '" + appDir + @"' -x 'config.json' '*.csv' '*.log'
+
+# 5. Restore executable permissions
+echo 'Setting permissions...'
+chmod +x '" + exePath + @"' '" + cliPath + @"' 2>/dev/null || true
+chmod +x '" + appDir + @"'/* 2>/dev/null || true
+
+# 6. Re-launch SYNCR (via systemd if available, else standalone background process)
+if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled syncr.service 2>/dev/null; then
+    echo 'Restarting syncr.service via systemd...'
+    sudo systemctl start syncr.service 2>/dev/null || systemctl start syncr.service 2>/dev/null
+else
+    echo 'Starting Syncr.UI process...'
+    if [ -f '" + exePath + @"' ]; then
+        nohup '" + exePath + @"' >/dev/null 2>&1 &
+    elif [ -f '" + dllPath + @"' ]; then
+        nohup dotnet '" + dllPath + @"' >/dev/null 2>&1 &
+    fi
+fi
+
+echo '=== Update Completed Successfully ==='
+rm -f '" + zipPath + @"'
+rm -- ""$0""
+";
+
+            File.WriteAllText(script, bashContent);
+
             Process.Start("chmod", $"+x \"{script}\"")?.WaitForExit();
-            Process.Start("/bin/bash", $"\"{script}\"");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "/bin/bash",
+                Arguments = $"\"{script}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            Process.Start(psi);
+
             Log("Updater script launched. SYNCR will restart automatically.");
             Environment.Exit(0);
         }
