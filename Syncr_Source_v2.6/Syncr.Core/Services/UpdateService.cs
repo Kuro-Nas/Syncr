@@ -241,28 +241,19 @@ echo '=== SYNCR Updater Started ==='
 echo 'Target Dir: " + appDir + @"'
 echo 'Zip File:   " + zipPath + @"'
 
-if command -v systemctl >/dev/null 2>&1; then
-    echo 'Stopping systemd syncr.service...'
-    sudo systemctl stop syncr.service 2>/dev/null || systemctl stop syncr.service 2>/dev/null || true
-fi
-
-sleep 2
-pkill -9 -f 'Syncr.UI' 2>/dev/null || true
-pkill -9 -f 'Syncr.CLI' 2>/dev/null || true
-
-echo 'Removing old binaries...'
-rm -f '" + exePath + @"' '" + cliPath + @"'
+# Wait 3 seconds for main application process to exit cleanly
+sleep 3
 
 echo 'Extracting update package...'
 unzip -o '" + zipPath + @"' -d '" + appDir + @"' -x 'config.json' '*.csv' '*.log'
 
-echo 'Setting permissions...'
+echo 'Setting executable permissions...'
 chmod +x '" + exePath + @"' '" + cliPath + @"' 2>/dev/null || true
 chmod +x '" + appDir + @"'/* 2>/dev/null || true
 
-if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled syncr.service 2>/dev/null; then
+if command -v systemctl >/dev/null 2>&1; then
     echo 'Restarting syncr.service via systemd...'
-    sudo systemctl start syncr.service 2>/dev/null || systemctl start syncr.service 2>/dev/null
+    sudo systemctl restart syncr.service 2>/dev/null || systemctl restart syncr.service 2>/dev/null || true
 else
     echo 'Starting Syncr.UI process...'
     if [ -f '" + exePath + @"' ]; then
@@ -274,7 +265,6 @@ fi
 
 echo '=== Update Completed Successfully ==='
 rm -f '" + zipPath + @"'
-rm -- ""$0""
 ";
 
             File.WriteAllText(script, bashContent);
@@ -284,7 +274,7 @@ rm -- ""$0""
             var psi = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"\"{script}\"",
+                Arguments = $"-c \"nohup '{script}' >/dev/null 2>&1 &\"",
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
