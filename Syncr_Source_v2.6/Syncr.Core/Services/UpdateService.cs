@@ -32,14 +32,25 @@ namespace Syncr.Core.Services
             _http = new HttpClient(handler);
             _http.DefaultRequestHeaders.UserAgent.Add(
                 new ProductInfoHeaderValue("SyncrApp", SyncrVersion.Current));
+            _http.Timeout = TimeSpan.FromSeconds(30);
+        }
 
+        private static async Task<string> GetJsonWithAuthFallbackAsync(string url)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
             if (!string.IsNullOrWhiteSpace(GitHubToken))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GitHubToken);
+
+            var response = await _http.SendAsync(request);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                _http.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", GitHubToken);
+                using var anonRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                response = await _http.SendAsync(anonRequest);
             }
 
-            _http.Timeout = TimeSpan.FromSeconds(30);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
         }
 
         public bool UpdateAvailable { get; private set; }
@@ -57,7 +68,7 @@ namespace Syncr.Core.Services
                 string url = $"https://api.github.com/repos/{GitHubOwner}/{GitHubRepo}/releases/latest";
                 Log($"Checking for updates at: {url}");
 
-                string json = await _http.GetStringAsync(url);
+                string json = await GetJsonWithAuthFallbackAsync(url);
                 var release = JsonConvert.DeserializeObject<GitHubRelease>(json);
                 if (release == null) return false;
 
@@ -120,12 +131,22 @@ namespace Syncr.Core.Services
                 Log($"Downloading from: {downloadUrl}");
 
                 using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                if (!string.IsNullOrWhiteSpace(GitHubToken))
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GitHubToken);
                 if (downloadUrl.Contains("api.github.com"))
-                {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+
+                var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    Log("Auth rejected, retrying download without token...");
+                    using var anonRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                    if (downloadUrl.Contains("api.github.com"))
+                        anonRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                    response = await _http.SendAsync(anonRequest, HttpCompletionOption.ResponseHeadersRead);
                 }
 
-                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
                 long? total = response.Content.Headers.ContentLength;
@@ -287,7 +308,11 @@ rm -- ""$0""
                    parts.Length == 2 ? $"{v}.0" : $"{v}.0.0";
         }
 
-        private void Log(string msg) => OnLog?.Invoke(msg);
+        private void Log(string msg)
+        {
+            DiagnosticLog.Update(msg);
+            OnLog?.Invoke(msg);
+        }
 
         private class GitHubRelease
         {

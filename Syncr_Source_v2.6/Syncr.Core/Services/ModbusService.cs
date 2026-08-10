@@ -63,15 +63,19 @@ namespace Syncr.Core.Services
 
         public void Start()
         {
-            Stop(); // Cancel any existing polling tasks cleanly
+            Stop();
             _pollCts = new CancellationTokenSource();
             var token = _pollCts.Token;
             _isRunning = true;
+
+            int enabled = _machines.Count(m => m.IsEnabled);
+            DiagnosticLog.Startup($"ModbusService.Start() — {enabled} machine(s) enabled");
 
             foreach (var machine in _machines)
             {
                 if (machine.IsEnabled)
                 {
+                    DiagnosticLog.Startup($"Starting poll task for: {machine.Name} [{machine.Type}] interval={machine.PollingIntervalMs}ms");
                     Task.Run(() => BackgroundPollMachine(machine, token), token);
                 }
             }
@@ -79,6 +83,7 @@ namespace Syncr.Core.Services
 
         public void Stop()
         {
+            DiagnosticLog.Startup("ModbusService.Stop() called — cancelling all poll tasks");
             _isRunning = false;
             try { _pollCts?.Cancel(); } catch { }
             try { _pollCts?.Dispose(); } catch { }
@@ -91,7 +96,7 @@ namespace Syncr.Core.Services
 
         private async Task BackgroundPollMachine(MachineConfig machine, CancellationToken token)
         {
-            // Initial settlement delay on boot/start — gives OS time to bring up network/USB
+            DiagnosticLog.Modbus($"Poll loop started: {machine.Name} [{machine.Type}]");
             await Task.Delay(500, token).ConfigureAwait(false);
 
             while (_isRunning && machine.IsEnabled && !token.IsCancellationRequested)
@@ -100,34 +105,41 @@ namespace Syncr.Core.Services
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     bool useMock = IsMockMachineActive(machine.Name);
-                    // Pass poll token so TCP connect can be cancelled on Stop/ReloadConfig
                     var data = useMock ? await MockRead(machine) : await RealRead(machine, token);
                     sw.Stop();
                     data.LatencyMs = sw.Elapsed.TotalMilliseconds;
+
+                    if (!useMock)
+                        DiagnosticLog.Modbus($"Poll OK: {machine.Name} — {data.Values.Count} tag(s) read in {sw.Elapsed.TotalMilliseconds:F0}ms");
+
                     OnDataReceived?.Invoke(data);
                 }
                 catch (OperationCanceledException)
                 {
+                    DiagnosticLog.Modbus($"Poll cancelled (stop/reload): {machine.Name}");
                     break;
                 }
                 catch (Exception ex)
                 {
+                    DiagnosticLog.Error("MODBUS", $"{machine.Name} — {ex.GetType().Name}: {ex.Message}");
                     OnConnectionError?.Invoke($"Connection Error: {machine.Name} - {ex.Message}");
                 }
 
                 int delay = machine.PollingIntervalMs > 0 ? machine.PollingIntervalMs : 5000;
-                // User requested 3000ms for simulation/mock flow
-                if (IsMockMachineActive(machine.Name)) delay = 3000; 
-                
+                if (IsMockMachineActive(machine.Name)) delay = 3000;
+
                 try
                 {
                     await Task.Delay(delay, token);
                 }
                 catch (OperationCanceledException)
                 {
+                    DiagnosticLog.Modbus($"Poll wait cancelled: {machine.Name}");
                     break;
                 }
             }
+
+            DiagnosticLog.Modbus($"Poll loop exited: {machine.Name}");
         }
 
 
@@ -413,6 +425,7 @@ namespace Syncr.Core.Services
                 // the background task. Instead we isolate the connect timeout, catch OCE here,
                 // and re-throw as TimeoutException so the poll loop retries after PollingIntervalMs.
                 using var connectTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                DiagnosticLog.Network($"TCP connect attempt: {machine.Name} -> {machine.IpAddress}:{machine.Port}");
                 try
                 {
 #if NET5_0_OR_GREATER
@@ -424,11 +437,11 @@ namespace Syncr.Core.Services
                         throw new TimeoutException($"TCP connect to {machine.IpAddress}:{machine.Port} timed out after 5 s");
                     await connectTask;
 #endif
+                    DiagnosticLog.Network($"TCP connected: {machine.Name} -> {machine.IpAddress}:{machine.Port}");
                 }
                 catch (OperationCanceledException) when (!pollToken.IsCancellationRequested)
                 {
-                    // The 5-second connect timeout fired — NOT a Stop/ReloadConfig cancellation.
-                    // Convert to TimeoutException so the poll loop logs it and retries.
+                    DiagnosticLog.Network($"TCP connect TIMEOUT (5s): {machine.Name} -> {machine.IpAddress}:{machine.Port} — will retry");
                     throw new TimeoutException($"TCP connect to {machine.IpAddress}:{machine.Port} timed out after 5 s");
                 }
                 // If pollToken itself is cancelled, OCE propagates up naturally → loop breaks.

@@ -346,6 +346,9 @@ namespace Syncr.UI.ViewModels
 
         private void AddToLog(string message)
         {
+            if (!string.IsNullOrEmpty(message))
+                DiagnosticLog.Ui(message);
+
             Dispatcher.UIThread.Post(() => {
                 if (string.IsNullOrEmpty(message)) return;
                 StatusLog.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
