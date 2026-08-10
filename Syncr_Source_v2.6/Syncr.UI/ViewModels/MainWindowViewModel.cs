@@ -1369,8 +1369,6 @@ namespace Syncr.UI.ViewModels
 
             // Reinitialize machine list NOW that Config is fully populated
             InitializeMachines();
-
-            _modbusSlaveService.Start();
             StatusMessage = "Running";
         }
 
@@ -1590,7 +1588,6 @@ namespace Syncr.UI.ViewModels
             _supabaseService.ResetConfig(_appConfig.Cloud);
             _modbusSlaveService.Stop();
             _modbusSlaveService.ResetConfig(_appConfig);
-            _modbusSlaveService.Start(); 
 
             // Apply updated theme preference
             if (Avalonia.Application.Current != null)
