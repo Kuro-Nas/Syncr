@@ -61,6 +61,7 @@ if ($LASTEXITCODE -eq 0) {
     $otaZipPath = Join-Path $PSScriptRoot "Syncr_Pi_arm64.zip"
     Write-Host "Creating Zip Archive: $otaZipPath..." -ForegroundColor Cyan
     if (Test-Path $otaZipPath) { Remove-Item $otaZipPath -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $zipPath) { Remove-Item $zipPath -Force -ErrorAction SilentlyContinue }
     Compress-Archive -Path (Get-ChildItem "$outputDir\*") -DestinationPath $otaZipPath -Force
     Copy-Item -Path $otaZipPath -Destination $zipPath -Force
     
