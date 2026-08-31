@@ -6,15 +6,15 @@ $zipName = "Syncr_Windows_x64.zip"
 
 Write-Host "Cleaning previous build..."
 if (Test-Path $publishDir) {
-    Remove-Item -Path $publishDir -Recurse -Force
+    Remove-Item -Path $publishDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 if (Test-Path $zipName) {
-    Remove-Item -Path $zipName -Force
+    Remove-Item -Path $zipName -Force -ErrorAction SilentlyContinue
 }
 
 # Deep Clean (v4.22) - Force refresh for Icons and cache
 Write-Host "Performing Deep Clean (bin/obj)..."
-Get-ChildItem -Path "." -Include bin, obj -Recurse | Remove-Item -Recurse -Force
+Get-ChildItem -Path "." -Include bin, obj -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
 # Publish as a Single-File Executable (100% safe untrimmed build, no debug symbols)
 Write-Host "Publishing Syncr.UI (Windows)..."
