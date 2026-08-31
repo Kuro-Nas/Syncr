@@ -16,10 +16,16 @@ Obfuscated_*/
 .DS_Store
 *.log
 
-# Exclude raw extraction helpers & pdf specs
+# Exclude raw extraction helpers & pdf specs & non-source scripts
 *.pdf
+*.py
+*.sh
+*.zip
+*.log
 extract_growatt.py
 growatt_extracted.txt
 input_regs.txt
 Syncr_v3.0.0_Source_Windows/
 publish-pi-v26/
+Syncr.CLI/
+Syncr.Test/
