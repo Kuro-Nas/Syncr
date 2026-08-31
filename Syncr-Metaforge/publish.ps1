@@ -51,6 +51,6 @@ if (Test-Path ".\Install_Shortcuts.ps1") {
 Copy-Item -Path ".\Syncr.UI\Assets" -Destination $publishDir -Recurse -Force
 
 Write-Host "Creating Zip Archive..."
-Compress-Archive -Path (Get-ChildItem "$publishDir\*") -DestinationPath $zipName -Force
+Compress-Archive -Path "$publishDir\*" -DestinationPath $zipName -Force
 
 Write-Host "Done! Artifacts are in $publishDir and $zipName"
