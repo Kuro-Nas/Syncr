@@ -9,10 +9,10 @@ $zipPath = Join-Path $PSScriptRoot "publish-pi-v26.zip"
 
 Write-Host "Cleaning previous build..."
 if (Test-Path $outputDir) {
-    Remove-Item $outputDir -Recurse -Force
+    Remove-Item $outputDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 if (Test-Path $zipPath) {
-    Remove-Item $zipPath -Force
+    Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
 }
 
 # Ultra-Deep Clean (v2.6) - Ensuring no stale XAML remains
@@ -58,11 +58,11 @@ if ($LASTEXITCODE -eq 0) {
         Copy-Item -Path (Join-Path $PSScriptRoot "SYNCR_MASTER_CHANGELOG.txt") -Destination $outputDir -Force
     }
 
-    Write-Host "Creating Zip Archive: $zipPath..." -ForegroundColor Cyan
-    Compress-Archive -Path "$outputDir\*" -DestinationPath $zipPath -Force
-
     $otaZipPath = Join-Path $PSScriptRoot "Syncr_Pi_arm64.zip"
-    Copy-Item -Path $zipPath -Destination $otaZipPath -Force
+    Write-Host "Creating Zip Archive: $otaZipPath..." -ForegroundColor Cyan
+    if (Test-Path $otaZipPath) { Remove-Item $otaZipPath -Force -ErrorAction SilentlyContinue }
+    Compress-Archive -Path (Get-ChildItem "$outputDir\*") -DestinationPath $otaZipPath -Force
+    Copy-Item -Path $otaZipPath -Destination $zipPath -Force
     
     Write-Host "Zip ready at: $zipPath and $otaZipPath" -ForegroundColor Green
 }
