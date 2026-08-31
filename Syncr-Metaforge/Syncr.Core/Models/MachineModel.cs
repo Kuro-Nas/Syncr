@@ -76,8 +76,8 @@ namespace Syncr.Core.Models
 
         public List<MachineTag> Tags { get; set; } = new List<MachineTag>();
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
@@ -117,8 +117,8 @@ namespace Syncr.Core.Models
         // Legacy — kept for JSON backwards-compatibility; ignored by new decode logic
         public int BitLength { get; set; } = 16;
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
@@ -126,7 +126,7 @@ namespace Syncr.Core.Models
 
     public class MachineDataPoint
     {
-        public string MachineName { get; set; }
+        public string MachineName { get; set; } = "";
         public System.DateTime Timestamp { get; set; }
         public Dictionary<string, double> Values { get; set; } = new Dictionary<string, double>();
         public double LatencyMs { get; set; }

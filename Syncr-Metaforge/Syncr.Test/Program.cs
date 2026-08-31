@@ -1,4 +1,4 @@
-﻿using Syncr.Core.Models;
+using Syncr.Core.Models;
 using Syncr.Core.Services;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace Syncr.Test
 
             var configService = new ConfigService();
             var config = configService.LoadConfig();
-            Console.WriteLine($"Loaded Config for {config.Count} machines.");
+            Console.WriteLine($"Loaded Config for {config.Machines.Count} machines.");
 
             var dataStore = new DataStore();
             var modbusService = new ModbusService(config, useMock: true);

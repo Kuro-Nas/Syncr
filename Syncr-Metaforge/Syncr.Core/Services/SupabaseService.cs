@@ -14,7 +14,7 @@ namespace Syncr.Core.Services
 {
     public class SupabaseService
     {
-        private Client _client;
+        private Client? _client;
         private CloudConfig _config;
         private bool _isConnected;
         private Queue<MachineDataPoint> _pendingQueue = new Queue<MachineDataPoint>();
@@ -25,10 +25,10 @@ namespace Syncr.Core.Services
         private int _retryCount;
         private readonly SemaphoreSlim _pushLock = new SemaphoreSlim(1, 1);
 
-        public event Action<string> OnStatusChanged;
-        public event Action OnTelemetryUpdated;
+        public event Action<string>? OnStatusChanged;
+        public event Action? OnTelemetryUpdated;
 
-        public int PendingQueueCount => _pendingQueue.Count;
+        public int PendingQueueCount { get { lock (_pendingQueue) { return _pendingQueue.Count; } } }
         public bool IsCloudConnected => _isConnected;
         public DateTime? LastSyncTime => _lastSyncTime;
         public int TotalSessionSyncs => _totalSessionSyncs;
@@ -36,8 +36,11 @@ namespace Syncr.Core.Services
 
         public SupabaseService(CloudConfig config)
         {
+            _config = config;
+#pragma warning disable SYSLIB0014
             // Force TLS 1.2 and 1.3 for modern Supabase SSL requirements
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+#pragma warning restore SYSLIB0014
             
             _syncFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "pending_sync.json");
             LoadPendingQueue();
@@ -53,7 +56,7 @@ namespace Syncr.Core.Services
             _ = InitializeClientAsync();
         }
 
-        private void OnConfigPropertyChanged(object sender, PropertyChangedEventArgs e) => _ = InitializeClientAsync();
+        private void OnConfigPropertyChanged(object? sender, PropertyChangedEventArgs e) => _ = InitializeClientAsync();
 
         private void LoadPendingQueue()
         {
@@ -74,7 +77,12 @@ namespace Syncr.Core.Services
         {
             try
             {
-                string json = JsonConvert.SerializeObject(_pendingQueue.ToList());
+                List<MachineDataPoint> snapshot;
+                lock (_pendingQueue)
+                {
+                    snapshot = _pendingQueue.ToList();
+                }
+                string json = JsonConvert.SerializeObject(snapshot);
                 string encrypted = EncryptionService.Encrypt(json);
                 File.WriteAllText(_syncFilePath, encrypted);
             }
@@ -268,10 +276,10 @@ namespace Syncr.Core.Services
     public class MachineTelemetry : Supabase.Postgrest.Models.BaseModel
     {
         [PrimaryKey("id", false)]
-        public string Id { get; set; }
+        public string Id { get; set; } = Guid.NewGuid().ToString();
 
         [Column("machine_name")]
-        public string MachineName { get; set; }
+        public string MachineName { get; set; } = "";
 
         [Column("timestamp")]
         public DateTime Timestamp { get; set; }
@@ -280,6 +288,6 @@ namespace Syncr.Core.Services
         /// Serialized as a JSON string into the Supabase "values" jsonb column.
         /// </summary>
         [Column("values")]
-        public string ValuesJson { get; set; }
+        public string ValuesJson { get; set; } = "{}";
     }
 }

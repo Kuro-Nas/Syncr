@@ -13,7 +13,7 @@ namespace Syncr.Core.Services
 {
     public class ModbusService
     {
-        private readonly List<MachineConfig> _machines;
+        private readonly List<MachineConfig> _machines = new();
         public List<MachineConfig> Config => _machines;
         private bool _isRunning;
         private readonly HashSet<string> _activeMockMachines = new();
@@ -26,17 +26,24 @@ namespace Syncr.Core.Services
             else { _activeMockMachines.Remove(machineName); }
         }
 
-        public event Action<MachineDataPoint> OnDataReceived;
-        public event Action<string> OnConnectionError;
-        public event Action OnConfigChanged;
+        public event Action<MachineDataPoint>? OnDataReceived;
+        public event Action<string>? OnConnectionError;
+        public event Action? OnConfigChanged;
 
         private readonly IModbusFactory _modbusFactory;
 
         public ModbusService(AppConfig config, bool useMock = true)
         {
-            _machines = config.Machines;
+            _machines = config.Machines ?? new List<MachineConfig>();
             UseMock = useMock;
             _modbusFactory = new ModbusFactory();
+            if (useMock && _machines != null)
+            {
+                foreach (var m in _machines)
+                {
+                    _activeMockMachines.Add(m.Name);
+                }
+            }
         }
 
         public void UpdateConfig(AppConfig newConfig)
@@ -344,8 +351,8 @@ namespace Syncr.Core.Services
         }
 
 
-        private IModbusMaster _cachedMaster;
-        private SerialPort _cachedPort;
+        private IModbusMaster? _cachedMaster;
+        private SerialPort? _cachedPort;
 
         private async Task<MachineDataPoint> RealRead(MachineConfig machine, CancellationToken pollToken = default)
         {
@@ -374,28 +381,59 @@ namespace Syncr.Core.Services
                     foreach (var group in tagsByFunction)
                     {
                         ModbusFunctionCode fc = group.Key;
+                        ushort minAddress = group.Min(t => t.Address);
 
-                        // Growatt RTU Spec (PDF Page 10): Dynamically discover required 45-register memory blocks
-                        // (Block 0 = 0..44, Block 1 = 45..89, etc.) based on configured tags to prevent RTU buffer shifting.
-                        var tagsByBlock = group.GroupBy(t => t.Address / 45);
-
-                        foreach (var blockGroup in tagsByBlock)
+                        if (minAddress < 90)
                         {
-                            int blockIndex      = blockGroup.Key;
-                            ushort blockStart   = (ushort)(blockIndex * 45);
-                            ushort blockCount   = 45; // Native Growatt hardware block size
+                            // ── Growatt-style: fixed 45-register memory block read ──────────────
+                            // Growatt RTU Spec (PDF Page 10): required 45-register memory blocks
+                            // (Block 0 = 0..44, Block 1 = 45..89, etc.) prevent RTU buffer shifting.
+                            var tagsByBlock = group.GroupBy(t => t.Address / 45);
 
-                            var registers = await ExecuteModbusReadAsync(_cachedMaster, machine.SlaveId, blockStart, blockCount, fc);
-
-                            if (registers != null)
+                            foreach (var blockGroup in tagsByBlock)
                             {
-                                foreach (var tag in blockGroup)
+                                int blockIndex    = blockGroup.Key;
+                                ushort blockStart = (ushort)(blockIndex * 45);
+                                ushort blockCount = 45; // Native Growatt hardware block size
+
+                                var registers = await ExecuteModbusReadAsync(_cachedMaster, machine.SlaveId, blockStart, blockCount, fc);
+
+                                if (registers != null)
                                 {
-                                    int offset = tag.Address - blockStart;
-                                    if (offset >= 0 && offset < registers.Length)
+                                    foreach (var tag in blockGroup)
                                     {
-                                        string key = $"{tag.Address}:{tag.Name}";
-                                        point.Values[key] = DecodeValue(registers, offset, tag);
+                                        int offset = tag.Address - blockStart;
+                                        if (offset >= 0 && offset < registers.Length)
+                                        {
+                                            string key = $"{tag.Address}:{tag.Name}";
+                                            point.Values[key] = DecodeValue(registers, offset, tag);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // ── Smart span reader: for meters whose registers start above 90 ──
+                            // Groups only the registers actually needed, merging adjacent tags
+                            // within RtuMaxGap registers.  Elmeasure LG6400N (addr 100-212)
+                            // collapses from 3 x 45-reg reads → 2 tight reads.
+                            var spans = BuildReadSpans(group);
+
+                            foreach (var (spanStart, spanCount, spanTags) in spans)
+                            {
+                                var registers = await ExecuteModbusReadAsync(_cachedMaster, machine.SlaveId, spanStart, spanCount, fc);
+
+                                if (registers != null)
+                                {
+                                    foreach (var tag in spanTags)
+                                    {
+                                        int offset = tag.Address - spanStart;
+                                        if (offset >= 0 && offset + RegisterCount(tag.DataType) <= registers.Length)
+                                        {
+                                            string key = $"{tag.Address}:{tag.Name}";
+                                            point.Values[key] = DecodeValue(registers, offset, tag);
+                                        }
                                     }
                                 }
                             }
@@ -465,13 +503,63 @@ namespace Syncr.Core.Services
         }
 
 
+        /// <summary>
+        /// Merges sorted tags into minimal contiguous read spans for smart RTU reads.
+        /// Tags within <c>MaxGap</c> registers of each other are merged into one request.
+        /// Each span is capped at <c>MaxSpan</c> registers (Modbus RTU protocol limit: 125).
+        /// Used for devices like Elmeasure LG6400N whose registers start above address 90.
+        /// </summary>
+        private static List<(ushort Start, ushort Count, List<MachineTag> Tags)> BuildReadSpans(
+            IEnumerable<MachineTag> tags)
+        {
+            const int MaxGap  = 8;   // merge spans if gap between them is <= 8 registers
+            const int MaxSpan = 125; // Modbus RTU hard limit: max 125 registers per request
+
+            var sorted    = tags.OrderBy(t => t.Address).ToList();
+            var result    = new List<(ushort Start, ushort Count, List<MachineTag> Tags)>();
+
+            if (sorted.Count == 0) return result;
+
+            var spanTags  = new List<MachineTag> { sorted[0] };
+            ushort sStart = sorted[0].Address;
+            ushort sEnd   = (ushort)(sorted[0].Address + RegisterCount(sorted[0].DataType));
+
+            for (int i = 1; i < sorted.Count; i++)
+            {
+                MachineTag tag  = sorted[i];
+                ushort tagEnd   = (ushort)(tag.Address + RegisterCount(tag.DataType));
+                int    gap      = tag.Address - sEnd;          // registers between end of span and start of next tag
+                int    newLen   = tagEnd - sStart;             // total span length if we merge
+
+                if (gap > MaxGap || newLen > MaxSpan)
+                {
+                    // Flush the current span and start a new one
+                    result.Add((sStart, (ushort)(sEnd - sStart), spanTags));
+                    spanTags = new List<MachineTag> { tag };
+                    sStart   = tag.Address;
+                    sEnd     = tagEnd;
+                }
+                else
+                {
+                    spanTags.Add(tag);
+                    if (tagEnd > sEnd) sEnd = tagEnd;
+                }
+            }
+
+            // Flush the last span
+            result.Add((sStart, (ushort)(sEnd - sStart), spanTags));
+            return result;
+        }
+
+
+
         private static readonly int[] CommonBaudRates = { 9600, 19200, 38400, 57600, 115200, 2400, 4800, 1200 };
 
         /// <summary>
         /// Tries each common baud rate in order. Uses the first configured tag's address.
         /// Returns the detected baud rate, or -1 if nothing responded.
         /// </summary>
-        public async Task<int> AutoDetectBaudRateAsync(MachineConfig machine, IProgress<string> progress = null)
+        public async Task<int> AutoDetectBaudRateAsync(MachineConfig machine, IProgress<string>? progress = null)
         {
             if (machine.Tags.Count == 0) return -1;
             ushort testAddress = machine.Tags[0].Address;
@@ -479,7 +567,7 @@ namespace Syncr.Core.Services
             foreach (int baud in CommonBaudRates)
             {
                 progress?.Report($"Trying {baud}...");
-                SerialPort port = null;
+                SerialPort? port = null;
                 try
                 {
                     port = new SerialPort(machine.SerialPort, baud, machine.Parity, machine.DataBits, machine.StopBits);

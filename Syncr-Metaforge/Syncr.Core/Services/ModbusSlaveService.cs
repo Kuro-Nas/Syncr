@@ -22,7 +22,8 @@ namespace Syncr.Core.Services
         private readonly List<IModbusSlaveNetwork> _slaveNetworks = new();
         private readonly Dictionary<string, ISlaveDataStore> _machineStores = new();
         private CancellationTokenSource? _simCancellation;
-        private bool _isInternalUpdate;
+        [ThreadStatic]
+        private static bool _isInternalUpdate;
         private readonly object _machinesLock = new();
 
         public event Action<MachineDataPoint>? OnDataWritten;
@@ -110,7 +111,10 @@ namespace Syncr.Core.Services
                 var slave = _modbusFactory.CreateSlave(machine.SlaveId, customStore);
                 network.AddSlave(slave);
                 
-                _slaveNetworks.Add(network);
+                lock (_machinesLock)
+                {
+                    _slaveNetworks.Add(network);
+                }
                 _ = Task.Run(() => network.ListenAsync());
                 OnLog?.Invoke($"RTU Slave started for {machine.Name} on {machine.SerialPort} ID:{machine.SlaveId}");
             }
@@ -122,8 +126,11 @@ namespace Syncr.Core.Services
                 var slave = _modbusFactory.CreateSlave(machine.SlaveId, customStore);
                 network.AddSlave(slave);
                 
-                _slaveNetworks.Add(network);
-                _machineStores[machine.Name] = customStore;
+                lock (_machinesLock)
+                {
+                    _slaveNetworks.Add(network);
+                    _machineStores[machine.Name] = customStore;
+                }
                 _ = Task.Run(() => network.ListenAsync());
                 OnLog?.Invoke($"TCP Slave started for {machine.Name} on {machine.IpAddress}:{machine.Port} ID:{machine.SlaveId}");
             }
@@ -157,12 +164,15 @@ namespace Syncr.Core.Services
         public void Stop()
         {
             _simCancellation?.Cancel();
-            foreach (var network in _slaveNetworks)
+            lock (_machinesLock)
             {
-                try { network.Dispose(); } catch {}
+                foreach (var network in _slaveNetworks)
+                {
+                    try { network.Dispose(); } catch {}
+                }
+                _slaveNetworks.Clear();
+                _machineStores.Clear();
             }
-            _slaveNetworks.Clear();
-            _machineStores.Clear();
         }
 
     private DateTime _startTime = DateTime.Now;

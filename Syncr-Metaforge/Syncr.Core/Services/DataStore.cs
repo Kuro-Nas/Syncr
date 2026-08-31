@@ -11,6 +11,7 @@ namespace Syncr.Core.Services
     public class DataStore
     {
         private readonly string _dataDir;
+        private readonly SemaphoreSlim _fileLock = new SemaphoreSlim(1, 1);
 
         public DataStore()
         {
@@ -24,6 +25,7 @@ namespace Syncr.Core.Services
 
         public async Task SaveDataAsync(MachineDataPoint data)
         {
+            await _fileLock.WaitAsync();
             try
             {
                 string fileName = $"data_{DateTime.Now:yyyy-MM-dd}.json";
@@ -36,6 +38,10 @@ namespace Syncr.Core.Services
             {
                 Console.WriteLine($"Error saving data: {ex.Message}");
             }
+            finally
+            {
+                _fileLock.Release();
+            }
         }
 
         public List<MachineDataPoint> LoadTodayData()
@@ -44,21 +50,29 @@ namespace Syncr.Core.Services
             string fileName = $"data_{DateTime.Now:yyyy-MM-dd}.json";
             string filePath = Path.Combine(_dataDir, fileName);
 
-            if (File.Exists(filePath))
+            _fileLock.Wait();
+            try
             {
-                var lines = File.ReadAllLines(filePath);
-                foreach (var line in lines)
+                if (File.Exists(filePath))
                 {
-                    if (!string.IsNullOrWhiteSpace(line))
+                    var lines = File.ReadAllLines(filePath);
+                    foreach (var line in lines)
                     {
-                        try
+                        if (!string.IsNullOrWhiteSpace(line))
                         {
-                            var point = JsonConvert.DeserializeObject<MachineDataPoint>(line);
-                            if (point != null) list.Add(point);
+                            try
+                            {
+                                var point = JsonConvert.DeserializeObject<MachineDataPoint>(line);
+                                if (point != null) list.Add(point);
+                            }
+                            catch { /* Ignore corrupt lines */ }
                         }
-                        catch { /* Ignore corrupt lines */ }
                     }
                 }
+            }
+            finally
+            {
+                _fileLock.Release();
             }
             return list;
         }

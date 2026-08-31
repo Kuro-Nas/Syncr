@@ -236,6 +236,13 @@ namespace Syncr.Core.Services
                     Category    = "Full Preset",
                     Description = "Growatt MIN Series — Single-Phase Residential",
                     Tags        = GetDefaultGrowattMinTags()
+                },
+                new RegisterTemplate
+                {
+                    Name        = "Elmeasure LG6400N (3-Phase Energy Meter)",
+                    Category    = "Full Preset",
+                    Description = "Elmeasure LG6400N Little Genius — Modbus RTU, 9600 baud, Even parity, FC03 Holding Registers. Addresses 40101-40213 (Parameter 1 group). No external scaling needed — meter outputs SI units directly.",
+                    Tags        = GetDefaultElmeasureLGTags()
                 }
             };
         }
@@ -294,6 +301,7 @@ namespace Syncr.Core.Services
                 Cloud = new CloudConfig(),
                 Machines = new List<MachineConfig>
                 {
+                    // ── Growatt solar inverters (RTU, None parity) ────────────────────
                     new MachineConfig
                     {
                         Name = "Inverter 1",
@@ -329,11 +337,165 @@ namespace Syncr.Core.Services
                         Parity = System.IO.Ports.Parity.None,
                         StopBits = System.IO.Ports.StopBits.One,
                         Tags = GetDefaultGrowattTags()
+                    },
+
+                    // ── Elmeasure LG6400N energy meters (RTU, Even parity, ID 5-9) ──
+                    new MachineConfig
+                    {
+                        Name = "Energy Meter 5",
+                        SlaveId = 5,
+                        Type = ConnectionType.Rtu,
+                        SerialPort = "COM3",
+                        BaudRate = 9600,
+                        DataBits = 8,
+                        Parity = System.IO.Ports.Parity.Even,
+                        StopBits = System.IO.Ports.StopBits.One,
+                        Tags = GetDefaultElmeasureLGTags()
+                    },
+                    new MachineConfig
+                    {
+                        Name = "Energy Meter 6",
+                        SlaveId = 6,
+                        Type = ConnectionType.Rtu,
+                        SerialPort = "COM3",
+                        BaudRate = 9600,
+                        DataBits = 8,
+                        Parity = System.IO.Ports.Parity.Even,
+                        StopBits = System.IO.Ports.StopBits.One,
+                        Tags = GetDefaultElmeasureLGTags()
+                    },
+                    new MachineConfig
+                    {
+                        Name = "Energy Meter 7",
+                        SlaveId = 7,
+                        Type = ConnectionType.Rtu,
+                        SerialPort = "COM3",
+                        BaudRate = 9600,
+                        DataBits = 8,
+                        Parity = System.IO.Ports.Parity.Even,
+                        StopBits = System.IO.Ports.StopBits.One,
+                        Tags = GetDefaultElmeasureLGTags()
+                    },
+                    new MachineConfig
+                    {
+                        Name = "Energy Meter 8",
+                        SlaveId = 8,
+                        Type = ConnectionType.Rtu,
+                        SerialPort = "COM3",
+                        BaudRate = 9600,
+                        DataBits = 8,
+                        Parity = System.IO.Ports.Parity.Even,
+                        StopBits = System.IO.Ports.StopBits.One,
+                        Tags = GetDefaultElmeasureLGTags()
+                    },
+                    new MachineConfig
+                    {
+                        Name = "Energy Meter 9",
+                        SlaveId = 9,
+                        Type = ConnectionType.Rtu,
+                        SerialPort = "COM3",
+                        BaudRate = 9600,
+                        DataBits = 8,
+                        Parity = System.IO.Ports.Parity.Even,
+                        StopBits = System.IO.Ports.StopBits.One,
+                        Tags = GetDefaultElmeasureLGTags()
                     }
                 }
             };
 
             return config;
+        }
+
+        /// <summary>
+        /// Elmeasure LG6400N Little Genius — 3-Phase Energy Meter register map.
+        /// Source: Elmeasure LG64XX Modbus Register Address User Manual.
+        /// All registers are FC03 (Holding Registers), Float32 (2 registers each).
+        /// Address convention: Modbus PDU address = register number - 40001.
+        ///   e.g. Register 40101 → PDU address 100.
+        /// The meter outputs SI units directly — no external scaling factor required.
+        /// Communication: 9600 baud, 8 data bits, Even parity, 1 stop bit.
+        /// </summary>
+        public static List<MachineTag> GetDefaultElmeasureLGTags()
+        {
+            var FC03 = ModbusFunctionCode.ReadHoldingRegisters;
+            int ci = 0;
+            var tags = new List<MachineTag>();
+
+            // ── Active Power (W) — registers 40101..40107 ─────────────────────────
+            tags.Add(new MachineTag { Address = 100, Name = "Watts Total",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "W",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 102, Name = "Watts R Phase",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "W",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 104, Name = "Watts Y Phase",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "W",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 106, Name = "Watts B Phase",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "W",    IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Reactive Power (VAR) — registers 40109..40115 ─────────────────────
+            tags.Add(new MachineTag { Address = 108, Name = "VAR Total",          FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VAR",  IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 110, Name = "VAR R Phase",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VAR",  IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 112, Name = "VAR Y Phase",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VAR",  IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 114, Name = "VAR B Phase",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VAR",  IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Power Factor — registers 40117..40123 ─────────────────────────────
+            tags.Add(new MachineTag { Address = 116, Name = "PF Average",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "",     IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 118, Name = "PF R Phase",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "",     IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 120, Name = "PF Y Phase",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "",     IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 122, Name = "PF B Phase",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "",     IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Apparent Power (VA) — registers 40125..40131 ──────────────────────
+            tags.Add(new MachineTag { Address = 124, Name = "VA Total",           FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VA",   IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 126, Name = "VA R Phase",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VA",   IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 128, Name = "VA Y Phase",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VA",   IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 130, Name = "VA B Phase",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "VA",   IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Line-to-Line Voltage (VLL) — registers 40133..40139 ───────────────
+            tags.Add(new MachineTag { Address = 132, Name = "VLL Average",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 134, Name = "Voltage Vry",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 136, Name = "Voltage Vyb",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 138, Name = "Voltage Vbr",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Line-to-Neutral Voltage (VLN) — registers 40141..40147 ───────────
+            tags.Add(new MachineTag { Address = 140, Name = "VLN Average",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 142, Name = "Voltage R Phase",    FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 144, Name = "Voltage Y Phase",    FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 146, Name = "Voltage B Phase",    FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "V",    IsPlotted = true,  Color = GetTagColor(ci++) });
+
+            // ── Current (A) — registers 40149..40155 ──────────────────────────────
+            tags.Add(new MachineTag { Address = 148, Name = "Avg Current",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "A",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 150, Name = "Current R Phase",    FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "A",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 152, Name = "Current Y Phase",    FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "A",    IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 154, Name = "Current B Phase",    FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "A",    IsPlotted = true,  Color = GetTagColor(ci++) });
+
+            // ── Frequency — register 40157 ────────────────────────────────────────
+            tags.Add(new MachineTag { Address = 156, Name = "Frequency",          FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "Hz",   IsPlotted = true,  Color = GetTagColor(ci++) });
+
+            // ── Energy Import — registers 40159..40165 ────────────────────────────
+            // Note: Manual prints 400159 etc. (6 digits) but correct PDU addr = 40159 - 40001 = 158
+            tags.Add(new MachineTag { Address = 158, Name = "kWh Import",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kWh",  IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 160, Name = "kVAh Import",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVAh", IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 162, Name = "kVARh Ind Import",   FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVARh",IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 164, Name = "kVARh Cap Import",   FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVARh",IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Energy Export — registers 40167..40173 ────────────────────────────
+            tags.Add(new MachineTag { Address = 166, Name = "kWh Export",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kWh",  IsPlotted = true,  Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 168, Name = "kVAh Export",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVAh", IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 170, Name = "kVARh Ind Export",   FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVARh",IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 172, Name = "kVARh Cap Export",   FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVARh",IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Total Harmonic Distortion — registers 40185..40195 ────────────────
+            tags.Add(new MachineTag { Address = 184, Name = "THD Voltage R",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "%",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 186, Name = "THD Voltage Y",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "%",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 188, Name = "THD Voltage B",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "%",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 190, Name = "THD Current R",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "%",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 192, Name = "THD Current Y",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "%",    IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 194, Name = "THD Current B",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "%",    IsPlotted = false, Color = GetTagColor(ci++) });
+
+            // ── Demand — registers 40197..40213 ──────────────────────────────────
+            tags.Add(new MachineTag { Address = 196, Name = "kW Demand",          FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kW",   IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 198, Name = "kVA Demand",         FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVA",  IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 200, Name = "kVAR Demand",        FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVAR", IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 208, Name = "kW Max Demand",      FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kW",   IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 210, Name = "kVA Max Demand",     FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVA",  IsPlotted = false, Color = GetTagColor(ci++) });
+            tags.Add(new MachineTag { Address = 212, Name = "kVAR Max Demand",    FunctionCode = FC03, DataType = TagDataType.Float32, ScalingFactor = 1.0, SiUnit = "kVAR", IsPlotted = false, Color = GetTagColor(ci++) });
+
+            return tags;
         }
     }
 }

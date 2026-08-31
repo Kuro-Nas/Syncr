@@ -2,6 +2,9 @@ SYNCR ENTERPRISE MASTER RELEASE LOG
 
 Version  Category       Description                                                     Release Date
 -------  ------------  --------------------------------------------------------------  ------------
+2.8.0    Feature       Elmeasure LG6400N 3-Phase Energy Meters support (5 default)      2026-08-31
+2.8.0    Optimization  Smart Modbus RTU register span reader for high-addr meters       2026-08-31
+2.7.0    Stability     DataStore concurrency locks, thread-safe Modbus slave simulation  2026-08-31
 2.6.2    Simulation    Multi-machine Simulation (Limit Removed)                2026-03-04
 2.6.2    Interface     Instant Live Metrics Visibility (Pre-populated)         2026-03-04
 2.6.0    Feature       Dashboard persistence & Live Metrics overhaul           2026-03-04

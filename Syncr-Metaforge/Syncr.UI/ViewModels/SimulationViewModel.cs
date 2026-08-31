@@ -61,7 +61,7 @@ namespace Syncr.UI.ViewModels
         {
             if (double.TryParse(Value, out double val))
             {
-
+                _service.UpdateMockValue(_machineName, _address, val);
             }
         }
     }
@@ -177,7 +177,9 @@ namespace Syncr.UI.ViewModels
             {
                 foreach (var kvp in point.Values)
                 {
-                    var tagVm = SimulatedTags.FirstOrDefault(t => t.Name == kvp.Key);
+                    var parts = kvp.Key.Split(':');
+                    var tagName = parts.Length > 1 ? parts[1] : parts[0];
+                    var tagVm = SimulatedTags.FirstOrDefault(t => t.Name == tagName);
                     if (tagVm != null)
                     {
                         tagVm.CurrentValue = kvp.Value.ToString("F2");
@@ -186,7 +188,7 @@ namespace Syncr.UI.ViewModels
                         StreamLog.Insert(0, new SimulationStreamEntry
                         {
                             Timestamp = point.Timestamp.ToString("HH:mm:ss.ff"),
-                            TagName = kvp.Key,
+                            TagName = tagName,
                             CurrentValue = tagVm.CurrentValue,
                             DisplayValue = tagVm.DisplayValue,
                             OverrideValue = tagVm.Value
