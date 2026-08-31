@@ -48,12 +48,15 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Copying Assets (v2.6.2)..." -ForegroundColor Cyan
     Copy-Item -Path (Join-Path $PSScriptRoot "Syncr.UI\Assets") -Destination $outputDir -Recurse -Force
 
-    # Include updated Modbus Slave Simulation script
-    Write-Host "Including Modbus Slave Simulator..." -ForegroundColor Cyan
-    Copy-Item -Path (Join-Path $PSScriptRoot "modbus_slave.py") -Destination $outputDir -Force
+    # Include updated Modbus Slave Simulation script if present
+    if (Test-Path (Join-Path $PSScriptRoot "modbus_slave.py")) {
+        Copy-Item -Path (Join-Path $PSScriptRoot "modbus_slave.py") -Destination $outputDir -Force
+    }
 
-    # Include Master Changelog in the zip
-    Copy-Item -Path (Join-Path $PSScriptRoot "SYNCR_MASTER_CHANGELOG.txt") -Destination $outputDir -Force
+    # Include Master Changelog in the zip if present
+    if (Test-Path (Join-Path $PSScriptRoot "SYNCR_MASTER_CHANGELOG.txt")) {
+        Copy-Item -Path (Join-Path $PSScriptRoot "SYNCR_MASTER_CHANGELOG.txt") -Destination $outputDir -Force
+    }
 
     Write-Host "Creating Zip Archive: $zipPath..." -ForegroundColor Cyan
     Compress-Archive -Path "$outputDir\*" -DestinationPath $zipPath -Force
