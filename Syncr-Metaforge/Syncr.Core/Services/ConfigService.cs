@@ -94,8 +94,16 @@ namespace Syncr.Core.Services
             if (config.RegisterLibrary == null || config.RegisterLibrary.Count == 0
                 || !config.RegisterLibrary.Any(t => t.IsFullPreset))
             {
-                // Migrate: replace old individual-tag library with the 2 full-preset entries
                 config.RegisterLibrary = GetDefaultTemplates();
+            }
+            else if (!config.RegisterLibrary.Any(t => t.Name.Contains("Elmeasure")))
+            {
+                // Auto-upgrade: ensure the new Elmeasure LG6400N template is added to existing libraries
+                var elmeasureTemplate = GetDefaultTemplates().FirstOrDefault(t => t.Name.Contains("Elmeasure"));
+                if (elmeasureTemplate != null)
+                {
+                    config.RegisterLibrary.Add(elmeasureTemplate);
+                }
             }
 
             if (config.Cloud == null)
