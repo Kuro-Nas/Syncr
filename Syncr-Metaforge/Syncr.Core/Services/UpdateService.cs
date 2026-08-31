@@ -88,7 +88,7 @@ namespace Syncr.Core.Services
                     {
                         if (asset.Name?.Equals(assetName, StringComparison.OrdinalIgnoreCase) == true)
                         {
-                            downloadUrl = !string.IsNullOrEmpty(asset.Url) ? asset.Url : asset.BrowserDownloadUrl;
+                            downloadUrl = !string.IsNullOrEmpty(asset.BrowserDownloadUrl) ? asset.BrowserDownloadUrl : asset.Url;
                             break;
                         }
                     }
@@ -131,16 +131,18 @@ namespace Syncr.Core.Services
                 Log($"Downloading from: {downloadUrl}");
 
                 using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                if (!string.IsNullOrWhiteSpace(GitHubToken))
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GitHubToken);
                 if (downloadUrl.Contains("api.github.com"))
+                {
+                    if (!string.IsNullOrWhiteSpace(GitHubToken))
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GitHubToken);
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                }
 
                 var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
-                    Log("Auth rejected, retrying download without token...");
+                    Log("Auth rejected or token expired, retrying direct public download...");
                     using var anonRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
                     if (downloadUrl.Contains("api.github.com"))
                         anonRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
